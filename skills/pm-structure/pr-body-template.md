@@ -4,7 +4,8 @@ Used by pm-implementer agents when creating pull requests. Replace placeholders.
 
 ---
 
-Closes #{issue_number}
+Resolves #{issue_number}
+**Target branch:** `{target_branch}`
 
 ## Summary
 
@@ -25,13 +26,20 @@ Closes #{issue_number}
 
 ## Definition of Done
 
-- [ ] All acceptance criteria scenarios pass
-- [ ] Unit tests written and passing
+- [ ] All scenarios passing
+- [ ] Tests written for each scenario
 - [ ] No regressions in existing tests
-- [ ] Code follows project conventions
 - [ ] Self-reviewed diff before submitting
 
 ## Changes
 
 - `{path/to/file1}` — {what changed}
 - `{path/to/file2}` — {what changed}
+
+## Lessons Learned
+
+- **Estimated size:** {size_label}
+- **Actual tokens:** ~{N}K
+- **Surprises:** {what differed from expectations}
+- **Patterns:** {reusable insights}
+- **Pitfalls:** {what to avoid next time}

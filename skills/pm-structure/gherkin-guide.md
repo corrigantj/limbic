@@ -49,8 +49,8 @@ Feature: {Name matching the issue title}
 
 | Issue Size | Scenarios |
 |---|---|
-| `size/xs` | 1-2 scenarios |
-| `size/s` | 2-3 scenarios |
-| `size/m` | 3-5 scenarios |
-| `size/l` | 5-8 scenarios (consider splitting) |
-| `size/xl` | 8+ scenarios (must split into sub-issues) |
+| `size:xs` | ~1-10K tokens, 1-2 scenarios |
+| `size:s` | ~10-50K tokens, 2-3 scenarios |
+| `size:m` | ~50-200K tokens, 3-5 scenarios |
+| `size:l` | ~200-500K tokens, 5-8 scenarios (consider splitting) |
+| `size:xl` | 500K+ tokens, 8+ scenarios (must split) |

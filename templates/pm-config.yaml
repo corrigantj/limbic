@@ -1,50 +1,115 @@
-# claude-pm configuration
+# claude-pm v2 configuration
 # Place this file at .github/pm-config.yaml in your project repository.
 # All values shown are defaults and can be omitted if unchanged.
 
-# Project identity (auto-detected from git remote if omitted)
+# ─── Project identity ───────────────────────────────────────────────────────
+# Auto-detected from the git remote URL if omitted.
+# Example: for git@github.com:acme/widget.git → owner: acme, repo: widget
 project:
   owner: ""        # GitHub org or username
   repo: ""         # Repository name
-  base_branch: ""  # Default branch (auto-detected)
+  base_branch: ""  # Default branch (auto-detected from HEAD)
 
-# Agent execution
+# ─── Agent execution ────────────────────────────────────────────────────────
+# Controls how pm-implementer agents are spawned during pm:dispatch.
 agents:
   max_parallel: 3  # Maximum concurrent pm-implementer agents
   model: opus      # Model for spawned agents (opus | sonnet)
 
-# Branch naming
+# ─── Branch naming ──────────────────────────────────────────────────────────
+# Branches are created as {prefix}/{issue-number}-{slug}.
 branches:
   prefix: pm       # Branch prefix: pm/{issue-number}-{slug}
 
-# Worktree management
+# ─── Worktree management ────────────────────────────────────────────────────
+# Each pm-implementer agent works in its own git worktree to avoid conflicts.
 worktrees:
   directory: .worktrees  # Worktree root relative to repo
 
-# Approval gates — require human confirmation before proceeding
+# ─── Approval gates ─────────────────────────────────────────────────────────
+# Require human confirmation before proceeding at key decision points.
+# Set any gate to true to pause and prompt before that step.
 approval_gates:
   before_dispatch: false        # Confirm batch before spawning agents
   before_merge: false           # Confirm each PR merge
   before_close_milestone: false # Confirm before closing milestone
+  before_wiki_update: false     # Confirm before writing wiki pages
 
-# Merge strategy
+# ─── Merge strategy ─────────────────────────────────────────────────────────
+# Controls how completed PRs are merged into the base branch.
 merge:
   strategy: squash   # squash | merge | rebase
   delete_branch: true
 
-# Build/test commands (auto-detected from package.json, Cargo.toml, etc. if omitted)
+# ─── Build/test commands ────────────────────────────────────────────────────
+# Auto-detected from project files (package.json, Cargo.toml, pyproject.toml,
+# Makefile, etc.) if omitted. Explicit values here override auto-detection.
 commands:
   test: ""   # e.g., "npm test", "cargo test", "pytest"
   lint: ""   # e.g., "npm run lint", "cargo clippy"
   build: ""  # e.g., "npm run build", "cargo build"
 
-# Additional labels beyond the default taxonomy
+# ─── Additional labels ──────────────────────────────────────────────────────
+# Extra labels beyond the default taxonomy (type/, size/, status/, priority/).
+# The default taxonomy is always created; entries here add to it.
 labels: []
   # - name: "area/frontend"
   #   color: "c5def5"
   #   description: "Frontend changes"
 
-# Custom template paths (relative to repo root)
-templates:
-  issue_body: ""  # Override default issue body template
-  pr_body: ""     # Override default PR body template
+# ─── Wiki management ────────────────────────────────────────────────────────
+# claude-pm v2 maintains a project wiki with architecture docs, decision logs,
+# and living PRD pages. The wiki repo is cloned as a sibling directory.
+wiki:
+  directory: .wiki    # Wiki clone location relative to repo root
+  auto_clone: true    # Automatically clone the wiki repo on first use
+
+# ─── Epics ───────────────────────────────────────────────────────────────────
+# Epics group related milestones and issues under a versioned umbrella.
+# The naming convention controls how epic identifiers are generated.
+epics:
+  naming: kebab-case  # kebab-case | snake_case | camelCase
+
+# ─── Validation ──────────────────────────────────────────────────────────────
+# Pre-flight validation checks before structuring or dispatching.
+# When enabled, pm:structure validates the PRD and dependency graph.
+# Strict mode treats warnings as errors.
+validation:
+  enabled: true   # Run validation checks
+  strict: false   # Treat warnings as errors
+
+# ─── Review polling ──────────────────────────────────────────────────────────
+# Controls how pm:status monitors open PRs for review state changes.
+# A lightweight model polls GitHub at the configured interval.
+review:
+  polling_interval: 60    # Seconds between review-state polls
+  polling_model: haiku    # Model used for polling (haiku | sonnet)
+  require_codeowners: false  # Require CODEOWNERS approval before merge
+
+# ─── Sizing ──────────────────────────────────────────────────────────────────
+# Token-based sizing determines the size/ label assigned to each issue.
+# Buckets are evaluated in order; the first matching range wins.
+# An upper of null means unbounded (xl issues should be split).
+sizing:
+  metric: tokens   # tokens | lines | files
+  buckets:
+    xs:
+      lower: 1000
+      upper: 10000
+      description: "Trivial change, single file"
+    s:
+      lower: 10000
+      upper: 50000
+      description: "Small feature, few files"
+    m:
+      lower: 50000
+      upper: 200000
+      description: "Moderate feature, multiple files"
+    l:
+      lower: 200000
+      upper: 500000
+      description: "Large feature, significant scope"
+    xl:
+      lower: 500000
+      upper: null
+      description: "Must be split — too large for one agent session"

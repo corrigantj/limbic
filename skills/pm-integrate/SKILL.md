@@ -1,120 +1,153 @@
 ---
 name: pm-integrate
-description: Use when implementation is complete and PRs need merging — performs pre-integration audit, topological merge ordering, sequential merge with test verification, conflict resolution, and milestone closure
+description: Use when all task PRs are merged into the feature branch — creates feature→main PR, polls for review, merges, creates retro wiki page, updates meta wiki, runs sizing calibration, closes milestone
 ---
 
-# pm-integrate — Merge PRs and Close Milestone
+# pm-integrate — Feature Branch Merge, Retro, and Milestone Closure
 
 **Type:** Rigid. Follow this process exactly.
 
 ## Inputs
 
-- A GitHub Milestone with completed issues and PRs
+- A GitHub Milestone with all task PRs merged into the feature branch (wave 1 complete)
 - Access to the project repository (GitHub MCP + gh CLI)
+- `.github/pm-config.yaml` for configuration values
+
+## Two-Wave Model Context
+
+In claude-pm v2, merging happens in two waves:
+- **Wave 1 (pm-review):** Task branches merge into the feature branch via topological sort
+- **Wave 2 (pm-integrate — this skill):** The feature branch merges into the base branch (main)
+
+This skill handles wave 2 plus all finalization: retro wiki page, meta wiki page update, PRD status update, sizing calibration PR, and milestone closure.
 
 ## Process
 
 ### Step 1: Pre-Integration Audit
 
-Run `pm:status` mentally (or invoke it) to verify readiness:
+Verify that wave 1 is complete — all task PRs should already be merged into the feature branch.
 
 1. Fetch all issues in the milestone
-2. Verify: **every issue** is either:
-   - Closed with `status/done` (already merged)
-   - Open with `status/in-review` and a PR with passing CI
-3. If any issues are `status/blocked`, `status/in-progress`, or `status/ready`:
+2. Check scenario acceptance trackers on all stories — all scenarios should be passing
+3. Verify every task issue is either:
+   - Closed with `status:done` (task PR merged into feature branch)
+   - Excluded by user decision
+4. Fetch any still-open issues in the milestone
+5. If any tasks are `status:in-progress`, `status:blocked`, or `status:ready`:
    - Report them and ask user how to proceed
    - Options: "Wait for completion", "Exclude from integration", "Cancel"
 
-Fetch all linked PRs and verify:
+```bash
+# Fetch open issues in milestone
+gh issue list --milestone "{milestone_title}" --state open --json number,title,labels
 ```
-For each in-review issue:
-  1. Find PR (branch pattern pm/{issue_number}-*)
-  2. Check CI: mcp__github__pull_request_read(method: "get_status")
-  3. Check review: mcp__github__pull_request_read(method: "get_reviews")
-```
-
-If any PR has failing CI, report it and ask user whether to proceed or fix first.
 
 ### Step 2: Build Merge Order
 
-Parse `<!-- pm:blocked-by #N, #M -->` from all issue bodies to build the dependency graph.
+In the two-wave model, there is typically **one feature PR** (feature→main). The per-issue topological sort is handled by `claude-pm:pm-review` in wave 1.
 
-**Topological sort** the dependency DAG:
-- Issues with no dependencies merge first
-- Issues depending on others merge after their dependencies
-- Break ties by PR creation date (oldest first)
+If multiple feature branches are ready (multiple epics), use dependency ordering between epics:
+- Parse epic-level dependencies from PRD wiki pages
+- Merge independent epics first, dependent epics after
 
-Already-merged issues (closed + `status/done`) are skipped.
-
-Present the merge order:
+Present the merge plan showing the feature branch(es) to merge:
 ```markdown
-## Merge Order
+## Feature Branch Merge Plan
 
-| Order | Issue | PR | Dependencies | CI |
-|-------|-------|-----|-------------|-----|
-| 1 | #{n}: {title} | #{pr} | none | pass |
-| 2 | #{n}: {title} | #{pr} | #{dep} | pass |
-| 3 | #{n}: {title} | #{pr} | #{dep1}, #{dep2} | pass |
+| Order | Feature Branch | Epic | Stories | Tasks |
+|-------|---------------|------|---------|-------|
+| 1 | feature/{epic}-v{Major} | {Epic Name} | {count} | {count} |
 ```
 
 ### Step 3: Approval Gate
 
-If `approval_gates.before_merge` is true (or as a safety default), present the merge plan and wait:
+If `approval_gates.before_merge` is true, present the merge plan and wait:
 
 ```markdown
-## Merge Plan
+## Feature Branch Merge Plan
 
-**Strategy:** {squash|merge|rebase} (from config)
-**PRs to merge:** {count}
-**Order:** Dependency-first, then by creation date
-**Post-merge test verification:** Yes (after each merge)
+**Feature branch:** feature/{epic}-v{Major}
+**Target:** {base_branch}
+**Strategy:** {squash|merge|rebase from config}
+**Stories included:** {count}
+**Tasks completed:** {count}
+**All scenario trackers passing:** Yes/No
 
-Approve merge sequence?
+Approve merge?
 ```
 
-Even if the gate is off, **always announce** what you're about to do before starting.
+Even if the gate is off, **always announce** what you are about to do before starting.
 
-### Step 4: Sequential Merge with Verification
+### Step 4: Create Feature PR
 
-For each PR in merge order:
+Create a PR from the feature branch to the base branch:
 
-#### 4a. Check PR is up-to-date
+```bash
+gh pr create --base {base_branch} --head feature/{epic}-v{Major} \
+  --title "{Epic Name} v{Major}.{Minor}" \
+  --body "## {Epic Name} v{Major}.{Minor}
+
+Milestone: #{milestone_number}
+PRD: [PRD-{epic}-v{Major}](../../wiki/PRD-{epic}-v{Major})
+
+### Stories Completed
+{list of stories with issue numbers}
+
+### Summary
+{aggregate description of what this version delivers}
+"
+```
+
+### Step 5: Poll for Review
+
+Use the same polling mechanism as `claude-pm:pm-review` but for the feature→main PR:
+
+1. Spawn a polling sub-agent (use `review.polling_model` from config, default haiku)
+2. Poll at `review.polling_interval` seconds (default 60)
+3. On review comments: address feedback, push fixes to feature branch
+4. On approval: proceed to merge
+5. If `review.require_codeowners` is true, verify CODEOWNERS approval before proceeding
+
+### Step 6: On Approval — Merge
+
+Once the feature PR is approved, merge it into the base branch.
+
+#### 6a. Ensure Feature Branch Is Up-to-Date
+
 ```bash
 gh pr view {pr_number} --json mergeable,mergeStateStatus
 ```
 
-If the PR is behind the base branch (because a previous PR was just merged):
+If the feature branch is behind the base branch:
 ```bash
-# Rebase the PR branch onto the updated base
 git fetch origin
-git checkout {branch_name}
+git checkout feature/{epic}-v{Major}
 git rebase origin/{base_branch}
-git push --force-with-lease origin {branch_name}
+git push --force-with-lease origin feature/{epic}-v{Major}
 ```
 
-Wait for CI to re-run after rebase. Check status:
-```
-mcp__github__pull_request_read(method: "get_status")
-```
+Wait for CI to re-run after rebase.
 
-#### 4b. Check for Conflicts
-If the PR has merge conflicts after rebase:
-- **Additive conflicts** (different sections of same file): attempt auto-resolve with rebase
-- **Overlapping conflicts** (same lines): present to user with both versions, ask for resolution
+#### 6b. Check for Conflicts
+
+If the feature branch has merge conflicts after rebase:
+- **Additive conflicts** (different files or non-overlapping sections): attempt auto-resolve with rebase
+- **Overlapping conflicts** (same lines in same file): present both versions to user, ask for resolution
 - **Never force-resolve conflicts** — always present to user if auto-resolve fails
 
-#### 4c. Merge PR
+#### 6c. Merge PR
+
 Use the configured merge strategy:
 ```bash
-gh pr merge {pr_number} --{strategy} --delete-branch
+gh pr merge {pr_number} --{strategy}
 ```
 
-Where `{strategy}` is `squash`, `merge`, or `rebase` from config (default: `squash`).
+Where `{strategy}` is `squash`, `merge`, or `rebase` from `merge.strategy` in config (default: `squash`).
 
-If `merge.delete_branch` is false, omit `--delete-branch`.
+If `merge.delete_branch` is true, add `--delete-branch`.
 
-#### 4d. Post-Merge Test Verification
+#### 6d. Post-Merge Test Verification
+
 After merging, verify the base branch is healthy:
 ```bash
 git checkout {base_branch}
@@ -123,57 +156,155 @@ git pull origin {base_branch}
 ```
 
 If tests fail after merge:
-- **STOP merging immediately**
-- Report which PR caused the failure
+- **STOP immediately**
+- Report what failed
 - Present options: "Revert last merge", "Debug and fix", "Continue anyway (dangerous)"
-- Do NOT continue merging unless the user explicitly says so
+- Do NOT proceed unless the user explicitly says so
 
-#### 4e. Update Issue
-Close the related issue and update labels:
-```bash
-gh issue close {issue_number} --reason completed
-gh issue edit {issue_number} --remove-label "status/in-review" --add-label "status/done"
+### Step 7: Ask User — Close or Continue?
+
+```markdown
+Feature branch merged to {base_branch}.
+
+**Options:**
+1. **Close milestone** — run retro, update wiki, create calibration PR, close
+2. **Keep open** — more work planned for this epic version (invoke `claude-pm:pm-dispatch` for next minor)
 ```
 
-### Step 5: Close Milestone
+If user chooses to keep open, stop here. Otherwise proceed with steps 8-14.
 
-After all PRs are merged and all issues closed:
+### Step 8: Collect Micro-Retros
 
-1. Verify all issues in the milestone are closed
-2. Close the milestone:
+Gather all micro-retro comments from task issues in the milestone:
+
+```bash
+# For each issue in milestone, find comments matching "## Micro-Retro"
+gh issue list --milestone "{milestone_title}" --state closed --json number --jq '.[].number'
+```
+
+For each issue, fetch comments and parse micro-retro sections:
+- Estimated size (the `size:` label)
+- Actual tokens consumed
+- Lessons learned (what went well, what went wrong, surprises)
+- Patterns discovered
+
+### Step 9: Create Retro Wiki Page
+
+1. Pull the wiki repo (clone if needed per `wiki.directory` config):
    ```bash
-   gh api repos/{owner}/{repo}/milestones/{milestone_number} \
-     --method PATCH -f state="closed"
+   git -C {wiki_directory} pull origin master
    ```
+2. Create `Retro-{epic}-v{Major}.{Minor}.md` using `retro-template.md` from this skill directory
+3. Fill with:
+   - Milestone summary (dates, counts, PRD link)
+   - Aggregated micro-retro data (lessons learned, patterns)
+   - Token calibration table (estimated vs actual per task)
+   - Calibration recommendations
+   - Process notes
+4. If `approval_gates.before_wiki_update` is true, present the page content and wait for approval
+5. Commit and push:
+   ```bash
+   git -C {wiki_directory} add "Retro-{epic}-v{Major}.{Minor}.md"
+   git -C {wiki_directory} commit -m "Add retro for {epic} v{Major}.{Minor}"
+   git -C {wiki_directory} push origin master
+   ```
+
+### Step 10: Update Meta Wiki Page
+
+1. Pull the wiki repo
+2. Update `{Epic-Name}.md` with the following sections:
+   - **"What This Feature Does Today"** — describe the shipped state after this version
+   - **Scope Matrix** — reflect what is now in production
+   - **Version History** — add a row marking this version as Shipped with today's date
+   - **Key Decisions** — add any ADRs created during this version
+3. If `approval_gates.before_wiki_update` is true, present changes and wait for approval
+4. Commit and push:
+   ```bash
+   git -C {wiki_directory} add "{Epic-Name}.md"
+   git -C {wiki_directory} commit -m "Update meta page for {epic} v{Major}.{Minor} — shipped"
+   git -C {wiki_directory} push origin master
+   ```
+
+### Step 11: Update PRD Status
+
+1. Set the PRD wiki page status from **Active** to **Approved**
+2. Commit and push:
+   ```bash
+   git -C {wiki_directory} add "PRD-{epic}-v{Major}.md"
+   git -C {wiki_directory} commit -m "PRD-{epic}-v{Major}: status Active → Approved"
+   git -C {wiki_directory} push origin master
+   ```
+
+### Step 12: Create Sizing Calibration PR
+
+Using the token data collected in Step 8:
+
+1. Tabulate estimated vs actual tokens from all micro-retros
+2. Calculate delta percentages for each task
+3. Identify systematic drift (e.g., consistent underestimation of a size bucket)
+4. Generate recommended bucket adjustments if data shows consistent drift
+5. Create a branch and PR modifying the `sizing.buckets` section of `.github/pm-config.yaml`:
+   ```bash
+   git checkout -b calibrate/sizing-{epic}-v{Major}.{Minor} origin/{base_branch}
+   # Apply sizing bucket updates to .github/pm-config.yaml
+   git add .github/pm-config.yaml
+   git commit -m "chore: calibrate sizing buckets from {epic} v{Major}.{Minor} retro"
+   git push -u origin calibrate/sizing-{epic}-v{Major}.{Minor}
+   gh pr create --base {base_branch} \
+     --head calibrate/sizing-{epic}-v{Major}.{Minor} \
+     --title "Calibrate sizing buckets from {epic} v{Major}.{Minor}" \
+     --body "## Sizing Calibration
+
+   Evidence from {epic} v{Major}.{Minor} retro:
+
+   | Task | Issue | Estimated Size | Actual Tokens | Delta % |
+   |------|-------|----------------|---------------|---------|
+   {evidence rows}
+
+   ### Recommendations
+   {bucket adjustment rationale}
+
+   See [Retro-{epic}-v{Major}.{Minor}](../../wiki/Retro-{epic}-v{Major}.{Minor}) for full details.
+   "
+   ```
+
+### Step 13: Close Milestone
+
+```bash
+gh api repos/{owner}/{repo}/milestones/{milestone_number} \
+  --method PATCH -f state="closed"
+```
 
 If `approval_gates.before_close_milestone` is true, ask for confirmation first.
 
-### Step 6: Final Report
+### Step 14: Final Report
 
 ```markdown
 ## Integration Complete
 
 **Milestone:** {title} — CLOSED
-**PRs merged:** {count}
-**Issues closed:** {count}
+**Feature branch:** feature/{epic}-v{Major} → {base_branch}
 **Merge strategy:** {strategy}
+**Stories completed:** {count}
+**Tasks completed:** {count}
 
-### Merge Log
-| Order | Issue | PR | Status |
-|-------|-------|-----|--------|
-| 1 | #{n}: {title} | #{pr} | Merged |
-| 2 | #{n}: {title} | #{pr} | Merged |
+### Wiki Updates
+- **Retro:** [Retro-{epic}-v{X}.{Y}](wiki_link)
+- **Meta page:** [{Epic Name}](wiki_link) — updated
+- **PRD:** [PRD-{epic}-v{X}](wiki_link) — status: Approved
 
-### Test Results
-- **Post-merge test suite:** PASSING
+### Sizing Calibration
+- **Calibration PR:** #{pr_number}
+- **Tasks analyzed:** {count}
+- **Bucket adjustments proposed:** {count}
+
+### Post-Merge Tests
+- **Status:** PASSING
 - **Total tests:** {count}
 
-### Conflicts Resolved
-{list any conflicts that were resolved, or "None"}
-
 ### Cleanup
-- Branches deleted: {list}
-- Worktrees to clean up: `rm -rf {worktree_dir}/{branch_prefix}/`
+- Feature branch deleted: {yes/no}
+- Worktrees to clean: `rm -rf {worktree_dir}/{branch_prefix}/`
 ```
 
 ## Conflict Resolution Strategies
@@ -200,9 +331,13 @@ git worktree prune
 
 ## Important Rules
 
-1. **Always merge in dependency order** — never merge a dependent before its dependency
-2. **Always verify tests after EACH merge** — catch integration failures early
-3. **Never force-merge conflicts** — present to user
-4. **Stop on test failure** — do not continue merging if the base branch is broken
-5. **Rebase before merge** — ensure each PR is up-to-date with base before merging
-6. **Close issues via the merge** — `Closes #N` in PR body triggers auto-close, but verify and update labels explicitly
+1. Always verify all task PRs merged before creating feature PR
+2. Always verify tests after merge
+3. Never force-merge conflicts — present to user
+4. Stop on test failure
+5. **Always create retro wiki page** before closing milestone
+6. **Always update meta wiki page** after merge
+7. **Always create sizing calibration PR** with evidence table
+8. **PRD status → Approved** after merge
+9. All label references use `:` delimiter (e.g., `status:done`, `size:m`)
+10. All skill references use `claude-pm:pm-{skill}` format

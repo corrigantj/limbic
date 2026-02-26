@@ -1,18 +1,25 @@
 # claude-pm
 
-GitHub-native project management for Claude Code. Create wiki PRDs with versioned epics, structure work into GitHub Milestones with story/task sub-issue hierarchies, dispatch parallel implementation agents (each in its own git worktree branching from a feature branch), manage the PR review cycle with a two-wave model, and calibrate future estimates with token-based sizing.
+Part product manager. Part engineering manager. Full GitHub-native project management for Claude Code. 
+
+* Create wiki PRDs with versioned epics
+* Structure work into GitHub Milestones with BDD/TDD story/task sub-issue hierarchies
+* Calibrate future work estimates with token-based ticket sizing (bye bye, story points!)
+* Dispatch parallel implementation agents (each in its own git worktree branching from a feature branch)
+* Manage the PR review cycle with a two-wave model (worktree → feature branch → main)
+* Build organizational knowledge for your AI workforce with postmortem retrospectives.
 
 ## How It Works
 
 claude-pm loads automatically when you start a Claude Code session. Just describe what you want to build — the plugin handles the rest:
 
-1. **You describe a feature** — claude-pm routes to brainstorming, which produces a PRD
+1. **You describe a feature** — claude-pm routes to `superpowers:brainstorming`, which produces a PRD saved to the project wiki.
 2. **Structure** — the PRD becomes a wiki page, a GitHub Milestone, story/task issues, and a feature branch
 3. **Dispatch** — parallel agents spawn in isolated worktrees, implement with TDD, and create task PRs targeting the feature branch
 4. **Review** — task PRs are polled for human review, feedback is addressed, approved PRs merge into the feature branch
 5. **Integrate** — the feature branch merges to main, a retrospective wiki page is created, sizing estimates are calibrated, and the milestone closes
 
-All state lives in GitHub Issues, PRs, and Wiki — session crashes are fully recoverable. Run `What's the project status?` in a new session to pick up where you left off.
+All state lives in GitHub Issues, PRs, and Wiki — session crashes are fully recoverable. Run `/pm-status` or simply ask `What's the project status?` in a new Claude Code session to pick up where you left off.
 
 ## Setup
 
@@ -43,17 +50,17 @@ claude-pm needs these to be available in your environment:
 
 ### 1. Describe What You Want to Build
 
-The `using-pm` skill is loaded automatically on session start. Just describe your project — it routes to brainstorming, which produces a PRD:
+The `using-pm` skill is loaded automatically on session start. Just describe your project — it routes to `superpowers:brainstorming`, which produces a PRD saved to the project wiki. For example:
 
 ```
 I want to build a user authentication system with Google OAuth
 ```
 
-This kicks off `superpowers:brainstorming` to explore requirements, then saves a PRD to `docs/plans/`.
+This kicks off `superpowers:brainstorming` to interactively research and explore requirements, then saves a PRD to `docs/plans/`.
 
 ### 2. Structure into Wiki + GitHub Issues
 
-Once you have a PRD, `using-pm` routes to `pm-structure` (or you can invoke it directly):
+Once you have a PRD, `/using-pm` routes to `/pm-structure` (or you can invoke it directly):
 
 ```
 Structure this PRD into GitHub issues
@@ -69,7 +76,7 @@ This creates:
 ### 3. Dispatch Implementation Agents
 
 ```
-Start implementing
+/pm-dispatch or "Start implementing"
 ```
 
 This spawns parallel agents (default: 3), each:
@@ -81,7 +88,7 @@ This spawns parallel agents (default: 3), each:
 ### 4. Check Progress
 
 ```
-What's the project status?
+/pm-status or "What's the project status?"
 ```
 
 Dashboard shows: progress bar, sub-issue grouping by story, CI status, blockers, next actions.
@@ -89,7 +96,7 @@ Dashboard shows: progress bar, sub-issue grouping by story, CI status, blockers,
 ### 5. Review and Merge Task PRs
 
 ```
-Check on task PRs
+/pm-review or "Check on task PRs"
 ```
 
 Polls task PRs for review status, merges approved PRs into the feature branch, and captures lessons learned for each completed task.
@@ -97,10 +104,10 @@ Polls task PRs for review status, merges approved PRs into the feature branch, a
 ### 6. Integrate and Ship
 
 ```
-Merge the feature branch
+/pm-integrate or "Merge the feature branch"
 ```
 
-Merges the feature branch to main, creates a retrospective wiki page, calibrates token-based sizing estimates, and closes the milestone.
+Merges the feature branch to main, creates a retrospective wiki page, calibrates token-based sizing estimates versus actual tokens used to complete work, and closes the milestone.
 
 ## Architecture
 

@@ -109,6 +109,51 @@ Merge the feature branch
 
 Merges the feature branch to main, creates a retrospective wiki page, calibrates token-based sizing estimates, and closes the milestone.
 
+## Architecture
+
+### Two-Wave PR Model
+
+Task PRs target the feature branch (wave 1, managed by `pm-review`). Once all tasks are merged, the feature branch is merged to main (wave 2, managed by `pm-integrate`). This isolates in-progress work from the main branch and enables parallel development without conflicts.
+
+### Wiki Management
+
+claude-pm maintains a project wiki with three page types:
+- **PRD pages** — living design documents with a lifecycle: Draft, In Review, Active, Approved, Superseded
+- **Meta pages** — index pages linking milestones, issues, and PRDs for an epic
+- **Retro pages** — retrospective summaries created during pm-integrate with sizing calibration data
+
+### Versioned Epics
+
+Epics use lower-kebab-case naming with semantic versioning: `{epic}-v{Major}.{Minor}`. This allows multiple versions of the same epic to coexist (e.g., `auth-system-v1.0` and `auth-system-v2.0`), with wiki pages and milestones scoped to each version.
+
+### Token-Based Sizing
+
+Issues are sized based on estimated token consumption, configured as buckets in `.github/pm-config.yaml`. During `pm-integrate`, actual token usage is compared against estimates, and the sizing calibration is updated in the retrospective wiki page. This feedback loop improves future estimates.
+
+### Label Taxonomy
+
+Labels use a `:` delimiter with standardized prefixes:
+- `epic:` — associates issues with a versioned epic
+- `priority:` — urgency (critical, high, medium, low)
+- `meta:` — metadata labels (e.g., `meta:ignore`, `meta:mustread`)
+- `size:` — token-based sizing (xs, s, m, l, xl)
+- `status:` — workflow state (ready, in-progress, in-review, done, blocked)
+
+### Sub-Issue Hierarchy
+
+Work is organized as stories containing task and bug sub-issues. Stories represent product-level requirements with Gherkin acceptance criteria. Tasks and bugs are implementation-level work items linked to their parent story via `<!-- pm:parent #N -->` comments.
+
+## Skill Reference
+
+| Skill | Purpose |
+|-------|---------|
+| `claude-pm:using-pm` | Gateway — kicks off brainstorming, routes to PM skills based on intent |
+| `claude-pm:pm-structure` | Convert PRD into Wiki pages + Milestone + Issues + feature branch |
+| `claude-pm:pm-dispatch` | Spawn parallel agents for ready issues |
+| `claude-pm:pm-status` | Live progress dashboard from GitHub state |
+| `claude-pm:pm-review` | Poll task PRs, merge into feature branch, capture lessons learned |
+| `claude-pm:pm-integrate` | Merge feature branch to main, create retro, calibrate sizing |
+
 ## Configuration
 
 Create `.github/pm-config.yaml` in your project repository:
@@ -209,51 +254,6 @@ sizing:
 ```
 
 All values have sensible defaults. The file is optional.
-
-## Architecture
-
-### Two-Wave PR Model
-
-Task PRs target the feature branch (wave 1, managed by `pm-review`). Once all tasks are merged, the feature branch is merged to main (wave 2, managed by `pm-integrate`). This isolates in-progress work from the main branch and enables parallel development without conflicts.
-
-### Wiki Management
-
-claude-pm maintains a project wiki with three page types:
-- **PRD pages** — living design documents with a lifecycle: Draft, In Review, Active, Approved, Superseded
-- **Meta pages** — index pages linking milestones, issues, and PRDs for an epic
-- **Retro pages** — retrospective summaries created during pm-integrate with sizing calibration data
-
-### Versioned Epics
-
-Epics use lower-kebab-case naming with semantic versioning: `{epic}-v{Major}.{Minor}`. This allows multiple versions of the same epic to coexist (e.g., `auth-system-v1.0` and `auth-system-v2.0`), with wiki pages and milestones scoped to each version.
-
-### Token-Based Sizing
-
-Issues are sized based on estimated token consumption, configured as buckets in `.github/pm-config.yaml`. During `pm-integrate`, actual token usage is compared against estimates, and the sizing calibration is updated in the retrospective wiki page. This feedback loop improves future estimates.
-
-### Label Taxonomy
-
-Labels use a `:` delimiter with standardized prefixes:
-- `epic:` — associates issues with a versioned epic
-- `priority:` — urgency (critical, high, medium, low)
-- `meta:` — metadata labels (e.g., `meta:ignore`, `meta:mustread`)
-- `size:` — token-based sizing (xs, s, m, l, xl)
-- `status:` — workflow state (ready, in-progress, in-review, done, blocked)
-
-### Sub-Issue Hierarchy
-
-Work is organized as stories containing task and bug sub-issues. Stories represent product-level requirements with Gherkin acceptance criteria. Tasks and bugs are implementation-level work items linked to their parent story via `<!-- pm:parent #N -->` comments.
-
-## Skill Reference
-
-| Skill | Purpose |
-|-------|---------|
-| `claude-pm:using-pm` | Gateway — kicks off brainstorming, routes to PM skills based on intent |
-| `claude-pm:pm-structure` | Convert PRD into Wiki pages + Milestone + Issues + feature branch |
-| `claude-pm:pm-dispatch` | Spawn parallel agents for ready issues |
-| `claude-pm:pm-status` | Live progress dashboard from GitHub state |
-| `claude-pm:pm-review` | Poll task PRs, merge into feature branch, capture lessons learned |
-| `claude-pm:pm-integrate` | Merge feature branch to main, create retro, calibrate sizing |
 
 ## Plugin Structure
 

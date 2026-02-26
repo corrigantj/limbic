@@ -4,47 +4,40 @@ GitHub-native project management for Claude Code. Create wiki PRDs with versione
 
 ## How It Works
 
-1. **You brainstorm** a design and save it as a PRD
-2. **`claude-pm:pm-structure`** creates a wiki PRD page, a meta page, a GitHub Milestone with Issues (stories, tasks, bugs), and a feature branch
-3. **`claude-pm:pm-dispatch`** spawns parallel pm-implementer agents — each in its own worktree, branching from the feature branch, implementing with TDD, creating task PRs
-4. **`claude-pm:pm-status`** shows a live dashboard from GitHub state (works across session crashes)
-5. **`claude-pm:pm-review`** polls task PRs for review status, merges approved PRs into the feature branch, and captures lessons learned
-6. **`claude-pm:pm-integrate`** merges the feature branch to main, creates a retrospective wiki page, calibrates sizing estimates, and closes the milestone
+claude-pm loads automatically when you start a Claude Code session. Just describe what you want to build — the plugin handles the rest:
 
-GitHub Issues + Wiki are the durable state machine — session crashes are fully recoverable.
+1. **You describe a feature** — claude-pm routes to brainstorming, which produces a PRD
+2. **Structure** — the PRD becomes a wiki page, a GitHub Milestone, story/task issues, and a feature branch
+3. **Dispatch** — parallel agents spawn in isolated worktrees, implement with TDD, and create task PRs targeting the feature branch
+4. **Review** — task PRs are polled for human review, feedback is addressed, approved PRs merge into the feature branch
+5. **Integrate** — the feature branch merges to main, a retrospective wiki page is created, sizing estimates are calibrated, and the milestone closes
 
-## Prerequisites
+All state lives in GitHub Issues, PRs, and Wiki — session crashes are fully recoverable. Run `What's the project status?` in a new session to pick up where you left off.
 
-- [superpowers](https://github.com/obra/superpowers) plugin installed (provides brainstorming, TDD, worktrees, debugging)
-- GitHub MCP server configured (for issue/PR/milestone management)
-- `gh` CLI authenticated (`gh auth status`)
-- A repository with a GitHub remote
-- **Wiki enabled** on the GitHub repository
+## Setup
 
-## Installation
+### 1. Install the superpowers plugin (required dependency)
 
-### Claude Code (via Plugin Marketplace)
+claude-pm depends on [superpowers](https://github.com/anthropics/superpowers) for brainstorming, TDD, git worktrees, and systematic debugging. Install it first:
 
 ```
-/plugin marketplace add corrigantj/claude-pm
-/plugin install claude-pm@claude-pm
+/install-plugin https://github.com/anthropics/superpowers
 ```
 
-To update after new releases:
+### 2. Install claude-pm
 
 ```
-/plugin marketplace update claude-pm
+/install-plugin https://github.com/corrigantj/claude-pm
 ```
 
-### Manual Installation
+### 3. Verify prerequisites
 
-Clone this repository and register it as a Claude Code plugin:
+claude-pm needs these to be available in your environment:
 
-```bash
-git clone https://github.com/corrigantj/claude-pm.git
-cd your-project
-# Add to your project's .claude/plugins or global plugins
-```
+- **GitHub MCP server** — configured in your Claude Code settings (for issue/PR/milestone management)
+- **`gh` CLI** — authenticated (`gh auth status`)
+- **A GitHub remote** — the repository you're working in must have a GitHub remote
+- **Wiki enabled** — go to your repo's Settings > Features > Wiki and enable it
 
 ## Quick Start
 

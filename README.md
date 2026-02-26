@@ -1,6 +1,6 @@
 # claude-pm
 
-Your favorite AI product squad. All GitHub-native.  Built for Claude Code.
+**Your favorite AI product squad. All GitHub-native.  Built for Claude Code.**
 
 * Create wiki PRDs with versioned epics
 * Structure work into GitHub Milestones with BDD/TDD story/task sub-issue hierarchies

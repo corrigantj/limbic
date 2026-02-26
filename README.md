@@ -1,6 +1,7 @@
 # claude-pm
 
-Part product manager. Part engineering manager. Full GitHub-native project management for Claude Code. 
+Part product manager. Part engineering manager. 
+Full GitHub-native project management for Claude Code. 
 
 * Create wiki PRDs with versioned epics
 * Structure work into GitHub Milestones with BDD/TDD story/task sub-issue hierarchies

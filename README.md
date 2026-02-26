@@ -48,18 +48,22 @@ cd your-project
 
 ## Quick Start
 
-### 1. Create a PRD
+### 1. Describe What You Want to Build
 
-Use superpowers brainstorming to design your project, then save to `docs/plans/`:
+The `using-pm` skill is loaded automatically on session start. Just describe your project — it routes to brainstorming, which produces a PRD:
 
 ```
-Let's brainstorm a user authentication system
+I want to build a user authentication system with Google OAuth
 ```
+
+This kicks off `superpowers:brainstorming` to explore requirements, then saves a PRD to `docs/plans/`.
 
 ### 2. Structure into Wiki + GitHub Issues
 
+Once you have a PRD, `using-pm` routes to `pm-structure` (or you can invoke it directly):
+
 ```
-Use pm:structure to break down docs/plans/auth-system.md
+Structure this PRD into GitHub issues
 ```
 
 This creates:
@@ -72,7 +76,7 @@ This creates:
 ### 3. Dispatch Implementation Agents
 
 ```
-Use pm:dispatch to start implementing
+Start implementing
 ```
 
 This spawns parallel agents (default: 3), each:
@@ -92,7 +96,7 @@ Dashboard shows: progress bar, sub-issue grouping by story, CI status, blockers,
 ### 5. Review and Merge Task PRs
 
 ```
-Use pm:review to check on task PRs
+Check on task PRs
 ```
 
 Polls task PRs for review status, merges approved PRs into the feature branch, and captures lessons learned for each completed task.
@@ -100,7 +104,7 @@ Polls task PRs for review status, merges approved PRs into the feature branch, a
 ### 6. Integrate and Ship
 
 ```
-Use pm:integrate to merge the feature branch
+Merge the feature branch
 ```
 
 Merges the feature branch to main, creates a retrospective wiki page, calibrates token-based sizing estimates, and closes the milestone.

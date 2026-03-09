@@ -21,6 +21,19 @@ In claude-pm v2, merging happens in two waves:
 
 This skill handles wave 2 plus all finalization: retro wiki page, meta wiki page update, PRD status update, sizing calibration PR, and milestone closure.
 
+## Checklist
+
+You MUST create a task for each of these items and complete them in order:
+
+1. **Pre-integration audit** — verify all task PRs merged, check scenario trackers, report open issues (Step 1)
+2. **Build merge plan** — determine merge order, present feature branch merge plan, get approval (Steps 2-3)
+3. **Create feature PR** — open PR from feature branch to base branch with story summary (Step 4)
+4. **Poll for review and merge** — spawn polling agent, address feedback, merge on approval, verify tests (Steps 5-6)
+5. **Collect lessons learned** — gather all Lessons Learned comments from milestone issues (Step 8)
+6. **Create retro wiki page** — fill retro template with aggregated data, commit and push (Step 9)
+7. **Update wiki and PRD** — update meta page with shipped state, set PRD status to Approved (Steps 10-11)
+8. **Calibrate sizing and close** — create sizing calibration PR, close milestone, present final report (Steps 12-14)
+
 ## Process
 
 ### Step 1: Pre-Integration Audit

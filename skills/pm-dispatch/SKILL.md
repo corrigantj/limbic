@@ -12,6 +12,17 @@ description: Use when ready to start implementation — spawns parallel pm-imple
 - A GitHub Milestone with issues created by `claude-pm:pm-structure`
 - Access to the project repository (GitHub MCP + gh CLI)
 
+## Checklist
+
+You MUST create a task for each of these items and complete them in order:
+
+1. **Read configuration** — load pm-config.yaml, auto-detect build commands (Step 1)
+2. **Fetch issues and build dependency graph** — collect milestone issues, parse dependencies, build DAG (Steps 2-3)
+3. **Identify parallelizable batch** — find ready issues, check file overlaps, apply priority/size sort (Step 4)
+4. **Present dispatch plan** — show batch table with branch names, file overlap check, get approval if gated (Step 5)
+5. **Dispatch agents** — generate branches, label issues, fill prompt templates, spawn parallel agents (Step 6)
+6. **Monitor and report** — collect results, update labels, present batch report, check for next batch (Step 7)
+
 ## Process
 
 ### Step 1: Read Configuration

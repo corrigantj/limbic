@@ -12,6 +12,18 @@ description: Use when converting a PRD or design document into a GitHub Wiki PRD
 - A PRD file (in `docs/plans/` or provided by user)
 - Access to project repository (GitHub MCP + gh CLI)
 
+## Checklist
+
+You MUST create a task for each of these items and complete them in order:
+
+1. **Parse PRD and read configuration** — extract epic name, stories, dependencies; read pm-config.yaml (Steps 1-3)
+2. **Validate inputs** — check PRD sections, story completeness, milestone uniqueness, size sanity (Step 4)
+3. **Create wiki pages** — PRD page, meta page, Home page, templates; commit and push (Step 5)
+4. **Create labels and milestone** — epic label, label taxonomy, milestone with PRD link (Steps 6-8)
+5. **Create feature branch** — branch from base branch and push (Step 9)
+6. **Create stories and tasks** — stories with BDD scenarios, dev tasks as sub-issues, dependency annotations (Steps 10-12)
+7. **Validate and finalize** — post-creation validation, update PRD status to Active, present summary (Steps 13-15)
+
 ## Process
 
 ### Step 1: Parse PRD

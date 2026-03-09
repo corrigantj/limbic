@@ -12,6 +12,15 @@ description: View project progress with sub-issue grouping under parent stories,
 - A GitHub Milestone (provide milestone title or number, or auto-detect the most recent open milestone)
 - Access to the project repository (GitHub MCP + gh CLI)
 
+## Checklist
+
+You MUST create a task for each of these items and complete them in order:
+
+1. **Fetch milestone issues** — get all open and closed issues, parse dependencies and parent relationships (Step 1)
+2. **Categorize by status** — bucket issues into Done, In Review, In Progress, Blocked, Ready, Pending (Step 2)
+3. **Fetch PR and CI status** — check linked PRs, CI results, feature→main PR state (Step 3)
+4. **Present dashboard** — render progress bar, story hierarchy, blockers, wiki links, next actions (Step 4)
+
 ## Process
 
 ### Step 1: Fetch All Issues in Milestone

@@ -13,6 +13,18 @@ description: Use after pm-dispatch agents create PRs — polls for human review 
 - Access to the project repository (GitHub MCP + gh CLI)
 - Configuration from `.github/pm-config.yaml` (review section)
 
+## Checklist
+
+You MUST create a task for each of these items and complete them in order:
+
+1. **Identify open task PRs** — fetch PRs targeting feature branch, collect CI and review state (Step 1)
+2. **Spawn polling sub-agent** — fill polling-prompt template, launch haiku poller (Step 2)
+3. **Process review activity** — route by review state: approved, changes requested, or comments only (Steps 3-4)
+4. **Merge approved PRs** — rebase onto feature branch, verify CI, merge, update issue labels (Step 5)
+5. **Update lessons learned** — append review round data to task issue comments (Step 6)
+6. **Update scenario tracker** — mark completed scenarios on parent story (Step 7)
+7. **Check for next batch** — identify newly unblocked tasks, present cycle summary (Step 8)
+
 ## Process
 
 ### Step 1: Identify Open Task PRs

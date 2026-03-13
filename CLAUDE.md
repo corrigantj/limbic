@@ -9,26 +9,37 @@ A Claude Code plugin that provides GitHub-native project management. It creates 
 ```
 limbic/
 ├── .claude-plugin/plugin.json     # Plugin metadata (v0.2.0)
-├── hooks/                         # SessionStart hook loads using-limbic (gateway that routes to all other skills)
-├── skills/                        # 6 skills: using-limbic, structure, dispatch, status, review, integrate
-│   ├── using-limbic/              # Gateway router — brainstorming entry, capability detection
+├── hooks/                         # SessionStart + PreToolUse hooks
+│   ├── hooks.json                 # Hook event definitions (SessionStart, PreToolUse)
+│   ├── session-start.sh           # Injects slim routing table on session start
+│   └── preflight.sh               # PreToolUse gate — runs preflight before gated skills
+├── scripts/
+│   └── preflight-checks/          # Deterministic bash checks, JSONL output
+│       ├── runner.sh              # Orchestrator — runs all checks, aggregates output
+│       ├── check-env.sh           # gh CLI, git repo, GitHub remote
+│       ├── check-repo.sh          # Wiki, Issue Types API, Sub-issues API
+│       ├── check-config.sh        # limbic.yaml existence and schema
+│       ├── check-labels.sh        # Label taxonomy matches config
+│       └── check-wiki.sh          # Wiki clone, Home page, templates
+├── skills/                        # 6 skills: init, structure, dispatch, status, review, integrate
+│   ├── init/                      # Setup wizard, preflight runner, drift remediation
 │   ├── structure/                 # PRD → Wiki + Milestone + Issues + feature branch
-│   │   ├── story-template.md      # Product story template
-│   │   ├── task-template.md       # Dev task sub-issue template
-│   │   ├── bug-template.md        # Bug sub-issue template
-│   │   ├── prd-template.md        # Wiki PRD page template
-│   │   ├── meta-template.md       # Wiki meta page template
-│   │   ├── pr-body-template.md    # PR body template
-│   │   └── gherkin-guide.md       # BDD scenario writing guide
+│   │   ├── story-template.md
+│   │   ├── task-template.md
+│   │   ├── bug-template.md
+│   │   ├── prd-template.md
+│   │   ├── meta-template.md
+│   │   ├── pr-body-template.md
+│   │   └── gherkin-guide.md
 │   ├── dispatch/                  # Spawn parallel agents on feature branch
 │   ├── status/                    # Progress dashboard with sub-issue grouping
 │   ├── review/                    # Task PR polling, merge to feature branch, lessons learned
-│   │   └── polling-prompt.md      # Polling sub-agent prompt template
+│   │   └── polling-prompt.md
 │   └── integrate/                 # Feature→main PR, retro, wiki update, calibration
-│       └── retro-template.md      # Retrospective wiki page template
+│       └── retro-template.md
 ├── agents/implementer.md          # Subordinate agent: 9-phase TDD workflow
 ├── templates/limbic.yaml          # Configuration schema with sizing buckets
-├── CLAUDE.md                      # This file
+├── CLAUDE.md
 ├── LICENSE
 └── README.md
 ```
@@ -36,12 +47,13 @@ limbic/
 ## Skill Flow
 
 ```
-brainstorming → PRD file
+limbic:init → .github/limbic.yaml + GitHub artifacts (labels, wiki)
+→ brainstorming → PRD file (use superpowers:brainstorming)
 → limbic:structure → Wiki PRD + Meta page + Milestone + Issues + feature branch
 → limbic:dispatch → Spawn agents (task branches off feature branch)
-→ limbic:status (anytime) → Dashboard from GitHub state
+→ limbic:status → Progress dashboard (run anytime, crash recovery)
 → limbic:review → Task PRs reviewed, merged into feature branch, lessons learned
-→ limbic:integrate → Feature branch → main, retro, wiki update, calibration, close
+→ limbic:integrate → Feature branch → main PR, retro, wiki update, close milestone
 ```
 
 ## Key Conventions
@@ -49,7 +61,7 @@ brainstorming → PRD file
 1. **GitHub Issues + Wiki are the durable state machine** — all progress survives session crashes
 2. **Two-wave PR model** — task PRs → feature branch (wave 1, review), feature → main (wave 2, integrate)
 3. **Dependencies encoded as HTML comments** — `<!-- limbic:blocked-by #12, #15 -->` and `<!-- limbic:parent #10 -->`
-4. **Label taxonomy** — `epic:`, `priority:`, `meta:`, `size:`, `status:` prefixes (`:` delimiter)
+4. **Label taxonomy** — `epic:`, `priority:`, `meta:`, `size:`, `status:`, `type:`, `backlog:` prefixes (`:` delimiter)
 5. **Versioned epics** — lower-kebab-case naming: `{epic}-v{Major}.{Minor}`
 6. **PRD lifecycle** — Draft → In Review → Active → Approved → Superseded
 7. **Token-based sizing** — configurable buckets in `.github/limbic.yaml`, calibrated via retros
@@ -62,11 +74,13 @@ brainstorming → PRD file
 - **gh CLI** — for labels, milestones, wiki, and operations not covered by MCP
 - **Wiki enabled** on the GitHub repository
 
+Run `limbic:init` to verify all prerequisites and configure the repository.
+
 ## Skill Reference
 
 | Skill | When to Use |
 |-------|------------|
-| `limbic:using-limbic` | Gateway — loaded on session start, kicks off brainstorming, routes to PM skills |
+| `limbic:init` | Setup, configuration, preflight checks, drift detection and remediation |
 | `limbic:structure` | Convert a PRD into Wiki pages + Milestone + Issues + feature branch |
 | `limbic:dispatch` | Spawn parallel implementer agents for ready issues |
 | `limbic:status` | View progress dashboard from GitHub state |

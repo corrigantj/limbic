@@ -52,7 +52,7 @@ limbic needs these to be available in your environment:
 
 ### 1. Describe What You Want to Build
 
-The `using-limbic` skill is loaded automatically on session start. Just describe your project — it routes to `superpowers:brainstorming`, which produces a PRD saved to the project wiki. For example:
+The `init` skill is loaded automatically on session start. Just describe your project — it routes to `superpowers:brainstorming`, which produces a PRD saved to the project wiki. For example:
 
 ```
 I want to build a user authentication system with Google OAuth
@@ -62,7 +62,7 @@ This kicks off `superpowers:brainstorming` to interactively research and explore
 
 ### 2. Structure into Wiki + GitHub Issues
 
-Once you have a PRD, `/using-limbic` routes to `/structure` (or you can invoke it directly):
+Once you have a PRD, `limbic:init` routes to `limbic:structure` (or you can invoke it directly):
 
 ```
 Structure this PRD into GitHub issues
@@ -149,7 +149,7 @@ Work is organized as stories containing task and bug sub-issues. Stories represe
 
 | Skill | Purpose |
 |-------|---------|
-| `limbic:using-limbic` | Gateway — kicks off brainstorming, routes to PM skills based on intent |
+| `limbic:init` | Setup, configuration, preflight checks, drift detection and remediation |
 | `limbic:structure` | Convert PRD into Wiki pages + Milestone + Issues + feature branch |
 | `limbic:dispatch` | Spawn parallel agents for ready issues |
 | `limbic:status` | Live progress dashboard from GitHub state |
@@ -189,12 +189,6 @@ approval_gates:
   before_merge: false
   before_close_milestone: false
   before_wiki_update: false
-
-# Merge strategy (two-wave model)
-merge:
-  task_strategy: rebase    # squash | merge | rebase (wave 1: task → feature)
-  feature_strategy: squash # squash | merge | rebase (wave 2: feature → main)
-  delete_branch: true
 
 # Build commands (auto-detected if omitted)
 commands:
@@ -262,9 +256,14 @@ All values have sensible defaults. The file is optional.
 ```
 limbic/
 ├── .claude-plugin/plugin.json     # Plugin metadata (v0.2.0)
-├── hooks/                         # SessionStart hook loads using-limbic (gateway that routes to all other skills)
-├── skills/                        # 6 skills: using-limbic, structure, dispatch, status, review, integrate
-│   ├── using-limbic/              # Gateway router — brainstorming entry, capability detection
+├── hooks/                         # SessionStart + PreToolUse hooks
+│   ├── hooks.json                 # Hook event definitions (SessionStart, PreToolUse)
+│   ├── session-start.sh           # Injects slim routing table on session start
+│   └── preflight.sh               # PreToolUse gate — runs preflight before gated skills
+├── scripts/
+│   └── preflight-checks/          # Deterministic bash checks, JSONL output
+├── skills/                        # 6 skills: init, structure, dispatch, status, review, integrate
+│   ├── init/                      # Setup wizard, preflight runner, drift remediation
 │   ├── structure/                 # PRD → Wiki + Milestone + Issues + feature branch
 │   │   ├── story-template.md      # Product story template
 │   │   ├── task-template.md       # Dev task sub-issue template

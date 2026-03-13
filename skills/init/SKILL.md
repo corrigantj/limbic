@@ -1,0 +1,198 @@
+---
+name: init
+description: Set up limbic for a repository — interactive config wizard, preflight checks, drift detection, and model-driven remediation
+---
+
+# init — Setup, Configuration & Preflight
+
+**Type:** Adaptive. Conversational when creating config, silent when checking drift.
+
+## Inputs
+
+- Access to the project repository (gh CLI)
+- Optionally: existing `.github/limbic.yaml`
+
+## Checklist
+
+You MUST create a task for each of these items and complete them in order:
+
+1. **Detect environment** — auto-detect owner/repo from git remote (Step 1)
+2. **Check for existing config** — branch to wizard or preflight path (Step 2)
+3. **Wizard OR preflight** — create config interactively or check drift silently (Steps 3-4)
+4. **Run preflight** — execute runner.sh, parse JSONL results (Step 5)
+5. **Remediate** — fix what the model can fix, guide the human on the rest (Step 6)
+6. **Converge** — re-run preflight to confirm all green (Step 7)
+
+## Process
+
+### Step 1: Detect Environment
+
+Auto-detect owner/repo from git remote:
+```bash
+gh repo view --json owner,name --jq '.owner.login + "/" + .name'
+```
+
+Also detect the default branch:
+```bash
+git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main"
+```
+
+### Step 2: Check for Existing Config
+
+Check if `.github/limbic.yaml` exists:
+
+- **Exists** → go to Step 4 (preflight path)
+- **Does not exist** → go to Step 3 (wizard path)
+
+### Step 3: Conversational Wizard (No Config)
+
+Present recommended defaults section by section. For each section, show the default and ask: "Looks good, or want to change anything?"
+
+**Section order:**
+
+1. **Project identity**
+   ```yaml
+   project:
+     owner: {detected}
+     repo: {detected}
+     base_branch: {detected}
+   ```
+
+2. **Agent settings**
+   ```yaml
+   agents:
+     max_parallel: 3
+     model: opus
+   ```
+
+3. **Sizing buckets**
+   ```yaml
+   sizing:
+     metric: tokens
+     buckets:
+       xs: { lower: 1000, upper: 10000, description: "Trivial change, single file" }
+       s: { lower: 10000, upper: 50000, description: "Small feature, few files" }
+       m: { lower: 50000, upper: 200000, description: "Moderate feature, multiple files" }
+       l: { lower: 200000, upper: 500000, description: "Large feature, significant scope" }
+       xl: { lower: 500000, upper: null, description: "Must be split" }
+   ```
+
+4. **Wiki settings**
+   ```yaml
+   wiki:
+     directory: .wiki
+     auto_clone: true
+   ```
+
+5. **Labels** — show the full default taxonomy:
+   - Priority: critical, high, medium, low
+   - Meta: ignore, mustread
+   - Size: xs, s, m, l, xl
+   - Status: ready, in-progress, in-review, blocked, done
+   - Type: story, task, bug (only if Issue Types unavailable)
+   - Backlog: now, next, later, icebox
+   - Ask: "Any custom labels to add?"
+
+6. **Approval gates**
+   ```yaml
+   approval_gates:
+     before_dispatch: false
+     before_merge: false
+     before_close_milestone: false
+     before_wiki_update: false
+   ```
+
+Remaining config sections (`branches`, `worktrees`, `commands`, `epics`, `validation`, `review`) use sensible defaults and can be customized by editing `.github/limbic.yaml` directly after init completes.
+
+After all sections are confirmed, write `.github/limbic.yaml` and proceed to Step 5.
+
+### Step 4: Preflight Path (Config Exists)
+
+Run preflight silently:
+```bash
+{PLUGIN_ROOT}/scripts/preflight-checks/runner.sh
+```
+
+Parse the JSONL output. Three outcomes:
+
+- **All pass (exit 0, no fail lines):** Report "Everything's in sync." and stop.
+- **Drift found (exit 1, has fail lines):** Present the drift report and offer two paths:
+  - **"Fix drift"** → proceed to Step 6 (remediation)
+  - **"Edit config"** → reopen the wizard (Step 3) for relevant sections, then re-run preflight
+- **Warnings only (exit 0, has warn lines):** Report warnings for awareness, but do not block.
+
+### Step 5: Run Preflight
+
+Run the full preflight suite:
+```bash
+{PLUGIN_ROOT}/scripts/preflight-checks/runner.sh
+```
+
+Parse each JSONL line. Present results grouped by category:
+
+```markdown
+## Preflight Results
+
+### Environment
+- [pass] gh 2.45.0 authenticated as {user}
+- [pass] Inside a git repository
+- [pass] GitHub remote found
+
+### Repository Capabilities
+- [pass] Wiki is enabled
+- [warn] Issue Types API not available — will use type: labels
+- [pass] Sub-issues API available
+
+### Configuration
+- [pass] Config file found
+- [pass] YAML syntax valid
+
+### Labels
+- [fail] Missing label: priority:critical
+- [fail] Missing label: status:ready
+- [pass] Label exists: size:m
+{...}
+
+### Wiki
+- [pass] Wiki repo is cloneable
+- [fail] Home.md does not exist
+- [warn] _Meta-Template.md does not exist yet
+```
+
+If any failures, proceed to Step 6. If all pass, report success and stop.
+
+### Step 6: Remediate
+
+Read each failed check's `fix` field. Decide per-check:
+
+**Model can execute directly:**
+- Missing labels → run the `gh label create` commands from the `fix` fields
+- Missing Home.md → clone wiki, create Home.md with a landing page, commit and push
+- Missing config → should not happen here (wizard creates it), but generate defaults if needed
+- Deprecated `merge` key in config → suggest removing it: "The `merge` section is no longer used — merge strategy is now hardcoded. Remove the `merge:` block from your `.github/limbic.yaml`."
+
+**Needs human action:**
+- Wiki not enabled → tell the user: "Wiki is not enabled. Enable it in repo Settings > General > Features > Wiki. Let me know when it's done and I'll re-check."
+- gh CLI not authenticated → tell the user: "Run `gh auth login` and let me know when done."
+- No GitHub remote → tell the user: "Add a GitHub remote: `git remote add origin https://github.com/{owner}/{repo}.git`"
+
+After executing all model-fixable items and confirming human-fixable items, proceed to Step 7.
+
+### Step 7: Converge
+
+Re-run the preflight to confirm all checks now pass:
+```bash
+{PLUGIN_ROOT}/scripts/preflight-checks/runner.sh
+```
+
+- **All green:** "limbic is fully configured. You're ready to go."
+- **Still has failures:** Report remaining issues. If they're human-fixable, wait. If model-fixable items failed, investigate and retry (max 3 attempts).
+
+## Important Rules
+
+1. **Never mutate in preflight scripts** — only the model remediates, reading the `fix` suggestions
+2. **Idempotent** — running init multiple times is safe and expected
+3. **Wizard is conversational** — one section at a time, confirm before moving on
+4. **Config is the source of truth** — preflight checks desired state against config, not hardcoded values
+5. **Labels use `:` delimiter** — never `/`
+6. **All skill references** use `limbic:{skill}` format

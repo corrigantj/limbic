@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
 # SessionStart hook for limbic plugin
+# Injects a slim routing table — replaces the old using-limbic skill injection
 
 set -euo pipefail
-
-# Determine plugin root directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-
-# Read using-limbic content
-using_limbic_content=$(cat "${PLUGIN_ROOT}/skills/using-limbic/SKILL.md" 2>&1 || echo "Error reading using-limbic skill")
 
 # Escape string for JSON embedding
 escape_for_json() {
@@ -21,16 +15,39 @@ escape_for_json() {
     printf '%s' "$s"
 }
 
-using_limbic_escaped=$(escape_for_json "$using_limbic_content")
-session_context="<LIMBIC_PLUGIN>\nYou have project management capabilities via the limbic plugin.\n\n**Below is the full content of your 'limbic:using-limbic' skill. For all PM skills, use the 'Skill' tool:**\n\n${using_limbic_escaped}\n</LIMBIC_PLUGIN>"
+routing_table="<LIMBIC_PLUGIN>
+You have project management capabilities via the limbic plugin.
 
-# Output context injection as JSON
+## Skill Routing
+
+| User Intent | Skill |
+|---|---|
+| First-time setup / \"init\" / fix drift | limbic:init |
+| New feature / project / \"plan this\" | superpowers:brainstorming then limbic:structure |
+| \"Break this down\" / has a PRD | limbic:structure |
+| \"Start working\" / \"Dispatch\" | limbic:dispatch |
+| \"What's the status?\" | limbic:status |
+| \"Review PRs\" / \"Check feedback\" | limbic:review |
+| \"Merge\" / \"Ship it\" / \"Integrate\" | limbic:integrate |
+
+## Flow
+
+init -> brainstorming -> structure -> dispatch -> status -> review -> integrate
+
+## Preflight
+
+A hook runs preflight checks before structure, dispatch, review, and integrate (not init or status).
+If checks fail, read the JSONL report and remediate before proceeding.
+</LIMBIC_PLUGIN>"
+
+escaped=$(escape_for_json "$routing_table")
+
 cat <<EOF
 {
-  "additional_context": "${session_context}",
+  "additional_context": "${escaped}",
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "${session_context}"
+    "additionalContext": "${escaped}"
   }
 }
 EOF

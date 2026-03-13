@@ -19,10 +19,10 @@ You MUST create a task for each of these items and complete them in order:
 1. **Parse PRD and read configuration** — extract epic name, stories, dependencies; read limbic.yaml (Steps 1-3)
 2. **Validate inputs** — check PRD sections, story completeness, milestone uniqueness, size sanity (Step 4)
 3. **Create wiki pages** — PRD page, meta page, Home page, templates; commit and push (Step 5)
-4. **Create labels and milestone** — epic label, label taxonomy, milestone with PRD link (Steps 6-8)
-5. **Create feature branch** — branch from base branch and push (Step 9)
-6. **Create stories and tasks** — stories with BDD scenarios, dev tasks as sub-issues, dependency annotations (Steps 10-12)
-7. **Validate and finalize** — post-creation validation, update PRD status to Active, present summary (Steps 13-15)
+4. **Create epic label and milestone** — per-epic label, milestone with PRD link (Steps 6-7)
+5. **Create feature branch** — branch from base branch and push (Step 8)
+6. **Create stories and tasks** — stories with BDD scenarios, dev tasks as sub-issues, dependency annotations (Steps 9-11)
+7. **Validate and finalize** — post-creation validation, update PRD status to Active, present summary (Steps 12-14)
 
 ## Process
 
@@ -144,55 +144,13 @@ Create `epic:{epic}` with color `0052cc` (blue) if it doesn't already exist:
 gh label create "epic:{epic}" --color "0052cc" --description "Epic: {Epic Name}" --force
 ```
 
-### Step 7: Create Label Taxonomy
+Taxonomy labels (priority, meta, size, status, backlog, type) are created by `limbic:init` and should already exist. If they don't, run `limbic:init` first.
 
-Use `:` delimiter (NOT `/`). Create via `gh label create --force`:
+Read capability flags from the preflight JSONL injected as additionalContext by the PreToolUse hook:
+- Issue Types: look for `"repo.issue_types"` with `"status":"pass"`
+- Sub-issues API: look for `"repo.sub_issues"` with `"status":"pass"`
 
-**Priority labels:**
-- `priority:critical` (color: `b60205`, description: "Must have -- blocks project")
-- `priority:high` (color: `d93f0b`, description: "Should have -- core functionality")
-- `priority:medium` (color: `fbca04`, description: "Nice to have -- enhances project")
-- `priority:low` (color: `0e8a16`, description: "Could defer -- not blocking")
-
-**Meta labels:**
-- `meta:ignore` (color: `006b75`, description: "Exclude from PM tracking")
-- `meta:mustread` (color: `006b75`, description: "Required reading for agents")
-
-**Size labels (descriptions from `sizing.buckets` config):**
-- `size:xs` (color: `bfd4f2`)
-- `size:s` (color: `bfd4f2`)
-- `size:m` (color: `bfd4f2`)
-- `size:l` (color: `bfd4f2`)
-- `size:xl` (color: `bfd4f2`)
-
-**Status labels:**
-- `status:ready` (color: `0e8a16`, description: "Ready for implementation")
-- `status:in-progress` (color: `fbca04`, description: "Agent is working on this")
-- `status:in-review` (color: `1d76db`, description: "PR created, awaiting review")
-- `status:blocked` (color: `d73a4a`, description: "Blocked by dependency or question")
-- `status:done` (color: `333333`, description: "Completed and merged")
-
-**Type labels (ONLY if Issue Types are unavailable -- detect via capability check):**
-- `type:story` (color: `cccccc`, description: "Product story")
-- `type:task` (color: `cccccc`, description: "Dev task")
-- `type:bug` (color: `cccccc`, description: "Bug report")
-
-**Backlog labels (optional):**
-- `backlog:now` (color: `ededed`, description: "Current sprint")
-- `backlog:next` (color: `ededed`, description: "Next sprint")
-- `backlog:later` (color: `ededed`, description: "Future sprint")
-- `backlog:icebox` (color: `ededed`, description: "Deprioritized")
-
-Also create any custom labels from `limbic.yaml`.
-
-Run label creation as a batch:
-```bash
-gh label create "priority:critical" --color "b60205" --description "Must have -- blocks project" --force
-gh label create "priority:high" --color "d93f0b" --description "Should have -- core functionality" --force
-# ... repeat for all labels
-```
-
-### Step 8: Create Milestone
+### Step 7: Create Milestone
 
 Create the milestone via `gh api`:
 ```bash
@@ -211,7 +169,7 @@ If a milestone with this title already exists, use it instead of creating a dupl
 
 Capture the milestone number from the response for use in subsequent steps.
 
-### Step 9: Create Feature Branch
+### Step 8: Create Feature Branch
 
 Create and push the feature branch from the configured base branch:
 ```bash
@@ -221,7 +179,7 @@ git push -u origin feature/{epic}-v{Major}
 
 If the feature branch already exists, check it out instead.
 
-### Step 10: Create Stories
+### Step 9: Create Stories
 
 For each product story extracted from the PRD, compose the issue body using `story-template.md` from this skill directory. Fill in:
 
@@ -241,7 +199,7 @@ Apply labels:
 
 Use Issue Type `story` if available, otherwise apply `type:story` label.
 
-Assign to the milestone created in Step 8.
+Assign to the milestone created in Step 7.
 
 Size estimation: use the `sizing.buckets` config to determine the appropriate size label. If a story estimates at `size:xl`, it must be split into smaller stories before creation.
 
@@ -250,7 +208,7 @@ Create stories in dependency order:
 2. **Feature stories next** -- may depend on infra
 3. **Integration / polish stories last** -- depend on features
 
-### Step 11: Create Dev Tasks
+### Step 10: Create Dev Tasks
 
 For each story, create dev tasks as sub-issues. Compose bodies using `task-template.md` from this skill directory. Fill in:
 
@@ -265,7 +223,7 @@ If Sub-issues API is available, create tasks as sub-issues of their parent story
 
 If Sub-issues API is unavailable, create as regular issues with `<!-- limbic:parent #NN -->` in the body to link to the parent story.
 
-**Always assign tasks to the milestone** created in Step 8, regardless of whether they are sub-issues or regular issues. Sub-issues do not inherit milestone assignment from their parent.
+**Always assign tasks to the milestone** created in Step 7, regardless of whether they are sub-issues or regular issues. Sub-issues do not inherit milestone assignment from their parent.
 
 Apply labels:
 - `epic:{name}` -- links task to the epic
@@ -274,7 +232,7 @@ Apply labels:
 
 Use Issue Type `task` if available, otherwise apply `type:task` label.
 
-### Step 12: Annotate Dependencies
+### Step 11: Annotate Dependencies
 
 For each story that depends on other stories, ensure the body contains:
 ```html
@@ -289,7 +247,7 @@ Dependencies must be annotated both ways:
 - The HTML comment in the issue body (for machine parsing)
 - The `status:blocked` label (for visual scanning)
 
-### Step 13: Post-Creation Validation
+### Step 12: Post-Creation Validation
 
 After all artifacts are created, verify each one:
 
@@ -312,14 +270,14 @@ After all artifacts are created, verify each one:
 
 Report any validation failures. Fix them before proceeding.
 
-### Step 14: Update PRD Status
+### Step 13: Update PRD Status
 
 Update the wiki PRD page:
 - Set Status from **Draft** to **Active**
 - Populate the Traceability section with issue numbers and milestone link
 - Commit and push wiki changes
 
-### Step 15: Present Summary
+### Step 14: Present Summary
 
 Output a summary for the user:
 

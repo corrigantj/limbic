@@ -81,7 +81,7 @@ If `approval_gates.before_merge` is true, present the merge plan and wait:
 
 **Feature branch:** feature/{epic}-v{Major}
 **Target:** {base_branch}
-**Strategy:** {squash|merge|rebase from config}
+**Strategy:** squash (feature branch squashed into single commit on base branch)
 **Stories included:** {count}
 **Tasks completed:** {count}
 **All scenario trackers passing:** Yes/No
@@ -153,14 +153,10 @@ If the feature branch has merge conflicts after rebase:
 
 #### 6c. Merge PR
 
-Use the configured feature merge strategy:
+Squash-merge the feature branch into the base branch (collapses all task commits into a single commit):
 ```bash
-gh pr merge {pr_number} --{feature_strategy}
+gh pr merge {pr_number} --squash --delete-branch
 ```
-
-Where `{feature_strategy}` is `squash`, `merge`, or `rebase` from `merge.feature_strategy` in config (default: `squash`).
-
-If `merge.delete_branch` is true, add `--delete-branch`.
 
 #### 6d. Post-Merge Test Verification
 

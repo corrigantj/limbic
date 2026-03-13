@@ -93,11 +93,10 @@ For each requested change or comment:
 
 2. If `review.require_codeowners` is true, verify a matching CODEOWNER has approved
 
-3. Merge using `merge.task_strategy` from config (default: `rebase` — task PRs rebase into feature branch for clean history):
+3. Merge the task PR (task PRs always rebase into the feature branch for clean history):
    ```bash
-   gh pr merge {pr_number} --{task_strategy} --delete-branch
+   gh pr merge {pr_number} --rebase --delete-branch
    ```
-   (respect `merge.delete_branch` config)
 
 4. Update linked issue: remove `status:in-review`, add `status:done`, close issue
 

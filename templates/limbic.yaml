@@ -35,17 +35,6 @@ approval_gates:
   before_close_milestone: false # Confirm before closing milestone
   before_wiki_update: false     # Confirm before writing wiki pages
 
-# ─── Merge strategy ─────────────────────────────────────────────────────────
-# Two-wave model uses separate strategies for task PRs and feature PRs.
-# task_strategy: how task PRs merge into the feature branch (wave 1, review)
-#   Default: rebase — task PRs always rebase into feature branch for clean history.
-# feature_strategy: how the feature branch merges into the base branch (wave 2, integrate)
-#   Default: squash — collapses the feature branch into a single commit on main.
-merge:
-  task_strategy: rebase    # squash | merge | rebase (wave 1: task → feature)
-  feature_strategy: squash # squash | merge | rebase (wave 2: feature → main)
-  delete_branch: true
-
 # ─── Build/test commands ────────────────────────────────────────────────────
 # Auto-detected from project files (package.json, Cargo.toml, pyproject.toml,
 # Makefile, etc.) if omitted. Explicit values here override auto-detection.

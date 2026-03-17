@@ -129,6 +129,10 @@ Output a formatted dashboard:
 - **PRD:** [PRD-{epic}-v{X}](wiki_link)
 - **Feature branch:** `feature/{epic}-v{Major}`
 
+### Project Board
+- **Board:** [View board](https://github.com/{users|orgs}/{owner}/projects/{board_number})
+  (Determine `users/` vs `orgs/` from `gh api users/{owner} --jq '.type'`)
+
 ### Context Documents
 {For each issue labeled `meta:mustread`:}
 - **#{number}: {title}** — {brief description or first line of body}

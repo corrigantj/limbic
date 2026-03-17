@@ -52,7 +52,7 @@ limbic needs these to be available in your environment:
 
 ### 1. Describe What You Want to Build
 
-The `init` skill is loaded automatically on session start. Just describe your project — it routes to `superpowers:brainstorming`, which produces a PRD saved to the project wiki. For example:
+The `setup` skill is loaded automatically on session start. Just describe your project — it routes to `superpowers:brainstorming`, which produces a PRD saved to the project wiki. For example:
 
 ```
 I want to build a user authentication system with Google OAuth
@@ -62,7 +62,7 @@ This kicks off `superpowers:brainstorming` to interactively research and explore
 
 ### 2. Structure into Wiki + GitHub Issues
 
-Once you have a PRD, `limbic:init` routes to `limbic:structure` (or you can invoke it directly):
+Once you have a PRD, `limbic:setup` routes to `limbic:structure` (or you can invoke it directly):
 
 ```
 Structure this PRD into GitHub issues
@@ -149,7 +149,7 @@ Work is organized as stories containing task and bug sub-issues. Stories represe
 
 | Skill | Purpose |
 |-------|---------|
-| `limbic:init` | Setup, configuration, preflight checks, drift detection and remediation |
+| `limbic:setup` | Setup, configuration, preflight checks, drift detection and remediation |
 | `limbic:structure` | Convert PRD into Wiki pages + Milestone + Issues + feature branch |
 | `limbic:dispatch` | Spawn parallel agents for ready issues |
 | `limbic:status` | Live progress dashboard from GitHub state |
@@ -262,8 +262,8 @@ limbic/
 │   └── preflight.sh               # PreToolUse gate — runs preflight before gated skills
 ├── scripts/
 │   └── preflight-checks/          # Deterministic bash checks, JSONL output
-├── skills/                        # 6 skills: init, structure, dispatch, status, review, integrate
-│   ├── init/                      # Setup wizard, preflight runner, drift remediation
+├── skills/                        # 6 skills: setup, structure, dispatch, status, review, integrate
+│   ├── setup/                     # Setup wizard, preflight runner, drift remediation
 │   ├── structure/                 # PRD → Wiki + Milestone + Issues + feature branch
 │   │   ├── story-template.md      # Product story template
 │   │   ├── task-template.md       # Dev task sub-issue template

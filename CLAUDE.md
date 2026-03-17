@@ -21,8 +21,8 @@ limbic/
 │       ├── check-config.sh        # limbic.yaml existence and schema
 │       ├── check-labels.sh        # Label taxonomy matches config
 │       └── check-wiki.sh          # Wiki clone, Home page, templates
-├── skills/                        # 6 skills: init, structure, dispatch, status, review, integrate
-│   ├── init/                      # Setup wizard, preflight runner, drift remediation
+├── skills/                        # 6 skills: setup, structure, dispatch, status, review, integrate
+│   ├── setup/                     # Setup wizard, preflight runner, drift remediation
 │   ├── structure/                 # PRD → Wiki + Milestone + Issues + feature branch
 │   │   ├── story-template.md
 │   │   ├── task-template.md
@@ -47,7 +47,7 @@ limbic/
 ## Skill Flow
 
 ```
-limbic:init → .github/limbic.yaml + GitHub artifacts (labels, wiki)
+limbic:setup → .github/limbic.yaml + GitHub artifacts (labels, wiki)
 → brainstorming → PRD file (use superpowers:brainstorming)
 → limbic:structure → Wiki PRD + Meta page + Milestone + Issues + feature branch
 → limbic:dispatch → Spawn agents (task branches off feature branch)
@@ -74,13 +74,13 @@ limbic:init → .github/limbic.yaml + GitHub artifacts (labels, wiki)
 - **gh CLI** — for labels, milestones, wiki, and operations not covered by MCP
 - **Wiki enabled** on the GitHub repository
 
-Run `limbic:init` to verify all prerequisites and configure the repository.
+Run `limbic:setup` to verify all prerequisites and configure the repository.
 
 ## Skill Reference
 
 | Skill | When to Use |
 |-------|------------|
-| `limbic:init` | Setup, configuration, preflight checks, drift detection and remediation |
+| `limbic:setup` | Setup, configuration, preflight checks, drift detection and remediation |
 | `limbic:structure` | Convert a PRD into Wiki pages + Milestone + Issues + feature branch |
 | `limbic:dispatch` | Spawn parallel implementer agents for ready issues |
 | `limbic:status` | View progress dashboard from GitHub state |

@@ -1,9 +1,9 @@
 ---
-name: init
+name: setup
 description: Set up limbic for a repository — interactive config wizard, preflight checks, drift detection, and model-driven remediation
 ---
 
-# init — Setup, Configuration & Preflight
+# setup — Setup, Configuration & Preflight
 
 **Type:** Adaptive. Conversational when creating config, silent when checking drift.
 

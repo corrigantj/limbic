@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # preflight.sh — PreToolUse hook for Skill tool invocations
 # Gates: structure, dispatch, review, integrate
-# Passes: init, status, and all non-limbic skills
+# Passes: setup, status, and all non-limbic skills
 
 set -euo pipefail
 

@@ -144,7 +144,7 @@ Create `epic:{epic}` with color `0052cc` (blue) if it doesn't already exist:
 gh label create "epic:{epic}" --color "0052cc" --description "Epic: {Epic Name}" --force
 ```
 
-Taxonomy labels (priority, meta, size, status, backlog, type) are created by `limbic:init` and should already exist. If they don't, run `limbic:init` first.
+Taxonomy labels (priority, meta, size, status, backlog, type) are created by `limbic:setup` and should already exist. If they don't, run `limbic:setup` first.
 
 Read capability flags from the preflight JSONL injected as additionalContext by the PreToolUse hook:
 - Issue Types: look for `"repo.issue_types"` with `"status":"pass"`

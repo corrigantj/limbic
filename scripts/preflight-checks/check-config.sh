@@ -19,7 +19,7 @@ emit() {
 # config.exists
 if [ ! -f "$CONFIG_PATH" ]; then
   emit "config.exists" "fail" "Config file not found: ${CONFIG_PATH}" \
-    "Run limbic:init to create .github/limbic.yaml"
+    "Run limbic:setup to create .github/limbic.yaml"
   exit 0
 fi
 emit "config.exists" "pass" "Config file found: ${CONFIG_PATH}"

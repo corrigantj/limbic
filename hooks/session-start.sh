@@ -22,7 +22,7 @@ You have project management capabilities via the limbic plugin.
 
 | User Intent | Skill |
 |---|---|
-| First-time setup / \"init\" / fix drift | limbic:init |
+| First-time setup / \"setup\" / fix drift | limbic:setup |
 | New feature / project / \"plan this\" | superpowers:brainstorming then limbic:structure |
 | \"Break this down\" / has a PRD | limbic:structure |
 | \"Start working\" / \"Dispatch\" | limbic:dispatch |
@@ -32,11 +32,11 @@ You have project management capabilities via the limbic plugin.
 
 ## Flow
 
-init -> brainstorming -> structure -> dispatch -> status -> review -> integrate
+setup -> brainstorming -> structure -> dispatch -> status -> review -> integrate
 
 ## Preflight
 
-A hook runs preflight checks before structure, dispatch, review, and integrate (not init or status).
+A hook runs preflight checks before structure, dispatch, review, and integrate (not setup or status).
 If checks fail, read the JSONL report and remediate before proceeding.
 </LIMBIC_PLUGIN>"
 

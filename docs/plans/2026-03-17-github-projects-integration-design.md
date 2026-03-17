@@ -75,9 +75,11 @@ New script: `scripts/preflight-checks/check-project.sh`
 
 Two checks:
 
-1. **`project.exists`** — if `board_number` is present in config, verify the board exists and is linked to the repo via `gh project view`. If the board is missing or not linked, emit fail with fix suggestion to run `limbic:setup`.
+1. **`project.exists`** — verify `board_number` is present in config. If absent, emit fail with fix suggestion to run `limbic:setup`. If present, verify the board exists and is linked to the repo via `gh project view`. If the board is missing or not linked, emit fail. Board setup is mandatory — all gated skills (structure, dispatch, review, integrate) require it.
 
-2. **`project.status_field`** — verify the board has a "Status" field with the expected single-select options: Ready, In Progress, In Review, Done. If options are missing or renamed, emit warn. This catches configuration drift.
+2. **`project.linked`** — verify the project is linked to the repository (not just that it exists). An unlinked board won't trigger "Item added" automations correctly. Check via `gh project view {board_number} --owner {owner} --format json` and verify the repo appears in linked repositories.
+
+3. **`project.status_field`** — verify the board has a "Status" field with the expected single-select options: Ready, In Progress, In Review, Done. If options are missing or renamed, emit warn. This catches configuration drift.
 
 Preflight does **not** check workflow automation state — there is no API for reading workflow configuration. The setup wizard guidance is best-effort.
 
@@ -91,12 +93,24 @@ New wizard section, slotted as **Section 2** (after Project Identity, before Siz
 2. Check if a board with that title already exists: `gh project list --owner {owner} --format json`
 3. If exists: "Found existing board '{title}' (#{number}). Use this one?" — if yes, store and skip creation.
 4. If not exists:
-   - Create: `gh project create --owner {owner} --title "{title}" --format json`
-   - Link to repo: GraphQL `linkProjectV2ToRepository` mutation
+   - Create: `gh project create --owner {owner} --title "{title}" --format json` — extract `number` from response
+   - Get the project's GraphQL node ID: `gh project view {number} --owner {owner} --format json --jq '.id'`
+   - Get the repo's GraphQL node ID: `gh api graphql -f query='{ repository(owner: "{owner}", name: "{repo}") { id } }' --jq '.data.repository.id'`
+   - Link to repo:
+     ```graphql
+     mutation {
+       linkProjectV2ToRepository(input: {
+         projectId: "{project_node_id}",
+         repositoryId: "{repo_node_id}"
+       }) { clientMutationId }
+     }
+     ```
    - Store `board_number` and `board_title` in config
 5. Present workflow automation guide:
    > "Now configure the board's automation. Open this URL:"
-   > `https://github.com/users/{owner}/projects/{number}/settings/workflows`
+   > `https://github.com/{users|orgs}/{owner}/projects/{number}/settings/workflows`
+   >
+   > (Use `users/` for personal accounts, `orgs/` for organizations. Determine via `gh api users/{owner} --jq '.type'`.)
    >
    > Enable these workflows:
    > 1. **Item added to project** → Set status to "Ready"
@@ -118,6 +132,24 @@ New wizard section, slotted as **Section 2** (after Project Identity, before Siz
 
 Config file is written using the Write tool directly (no `mkdir` — Write creates parent directories automatically).
 
+## Resolving Board Field and Option IDs
+
+The `gh project item-edit` command requires GraphQL node IDs for the project, the Status field, and the target option (e.g., "In Progress"). These IDs are not the same as the project number.
+
+**How to resolve IDs:**
+
+1. **Project node ID** — obtained from `gh project view {board_number} --owner {owner} --format json --jq '.id'`
+2. **Status field ID** — obtained from `gh project field-list {board_number} --owner {owner} --format json --jq '.fields[] | select(.name == "Status") | .id'`
+3. **Option IDs** — obtained from the same field-list query: `--jq '.fields[] | select(.name == "Status") | .options[] | {name, id}'`
+4. **Item ID** (per issue) — obtained from `gh project item-list {board_number} --owner {owner} --format json --jq '.items[] | select(.content.number == {issue_number}) | .id'`
+
+**Who resolves what:**
+
+- **`limbic:dispatch`** resolves IDs 1-3 once per invocation (they don't change between issues), then resolves item IDs per issue. Dispatch also passes all resolved IDs (project node ID, field ID, option ID for "In Review") to each implementer agent via the agent prompt, so the implementer only needs to resolve its own item ID.
+- **`implementer` agent** receives pre-resolved IDs from dispatch. Only queries its own item ID at runtime.
+
+This minimizes API calls: dispatch does one field-list query, implementer agents do one item-list query each.
+
 ## Skill Changes
 
 ### `limbic:structure`
@@ -126,6 +158,8 @@ After creating all issues (stories + tasks) and assigning to the milestone:
 
 - Read `board_number` and `owner` from config
 - For each created issue: `gh project item-add {board_number} --owner {owner} --url {issue_url}`
+- `gh project item-add` is idempotent — adding an already-added issue is a no-op, so retries are safe
+- If an individual `item-add` fails (rate limit, transient error), log a warning and continue with remaining issues. Do not fail the entire structure run for a board error — the issues and milestone are the critical artifacts, the board is supplementary
 - The "Item added to project" workflow automatically sets Status to Ready
 - Add the board URL to:
   - Milestone description (alongside PRD link and feature branch name)
@@ -137,17 +171,20 @@ No conditional board checks — if structure is executing, preflight already pas
 
 After labeling each dispatched issue `status:in-progress`:
 
-- Query the board for the issue's project item ID
-- Set the Status field to "In Progress": `gh project item-edit --id {item_id} --field-id {status_field_id} --project-id {project_id} --single-select-option-id {in_progress_option_id}`
+1. Query the board for field IDs (once per dispatch invocation):
+   - Project node ID via `gh project view`
+   - Status field ID and option IDs via `gh project field-list`
+2. Per dispatched issue, query the item ID via `gh project item-list`
+3. Set the Status field to "In Progress": `gh project item-edit --id {item_id} --field-id {status_field_id} --project-id {project_id} --single-select-option-id {in_progress_option_id}`
+4. Pass the following resolved IDs to each implementer agent prompt: project node ID, Status field ID, "In Review" option ID
 
 ### `implementer` agent
 
 After creating the PR and updating labels to `status:in-review` (Phase 8):
 
-- Query the board for the issue's project item ID
-- Set the Status field to "In Review": `gh project item-edit --id {item_id} --field-id {status_field_id} --project-id {project_id} --single-select-option-id {in_review_option_id}`
-
-The implementer already reads `limbic.yaml` during its context-loading phase, so `board_number` and `owner` are available.
+1. Read pre-resolved IDs from the agent prompt (project node ID, Status field ID, "In Review" option ID — injected by dispatch)
+2. Query its own item ID via `gh project item-list`
+3. Set the Status field to "In Review": `gh project item-edit --id {item_id} --field-id {status_field_id} --project-id {project_id} --single-select-option-id {in_review_option_id}`
 
 ### `limbic:review`
 
@@ -157,8 +194,10 @@ No board changes. Issue closure triggers the "Item closed → Done" workflow aut
 
 Include the board URL in the dashboard output:
 ```
-**Project Board:** https://github.com/users/{owner}/projects/{number}
+**Project Board:** https://github.com/{users|orgs}/{owner}/projects/{number}
 ```
+
+The URL path segment (`users/` vs `orgs/`) depends on whether `owner` is a personal account or an organization. Determine at runtime: `gh api users/{owner} --jq '.type'` returns `"User"` or `"Organization"`.
 
 ### `limbic:integrate`
 
@@ -184,5 +223,6 @@ The setup wizard provides the exact URL and step-by-step instructions. These onl
 | `skills/status/SKILL.md` | Show board URL in dashboard |
 | `templates/limbic.yaml` | Add `board_number` and `board_title` fields |
 | `scripts/preflight-checks/check-project.sh` | New preflight script |
+| `scripts/preflight-checks/runner.sh` | Add `run_check "project"` line |
 | `CLAUDE.md` | Update plugin structure and references |
 | `README.md` | Update documentation |

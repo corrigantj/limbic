@@ -20,7 +20,8 @@ limbic/
 │       ├── check-repo.sh          # Wiki, Issue Types API, Sub-issues API
 │       ├── check-config.sh        # limbic.yaml existence and schema
 │       ├── check-labels.sh        # Label taxonomy matches config
-│       └── check-wiki.sh          # Wiki clone, Home page, templates
+│       ├── check-wiki.sh          # Wiki clone, Home page, templates
+│       └── check-project.sh      # Project board existence, linkage, Status field
 ├── skills/                        # 6 skills: setup, structure, dispatch, status, review, integrate
 │   ├── setup/                     # Setup wizard, preflight runner, drift remediation
 │   ├── structure/                 # PRD → Wiki + Milestone + Issues + feature branch
@@ -47,9 +48,9 @@ limbic/
 ## Skill Flow
 
 ```
-limbic:setup → .github/limbic.yaml + GitHub artifacts (labels, wiki)
+limbic:setup → .github/limbic.yaml + GitHub artifacts (labels, wiki, project board)
 → brainstorming → PRD file (use superpowers:brainstorming)
-→ limbic:structure → Wiki PRD + Meta page + Milestone + Issues + feature branch
+→ limbic:structure → Wiki PRD + Meta page + Milestone + Issues + feature branch + add to board
 → limbic:dispatch → Spawn agents (task branches off feature branch)
 → limbic:status → Progress dashboard (run anytime, crash recovery)
 → limbic:review → Task PRs reviewed, merged into feature branch, lessons learned

@@ -50,6 +50,14 @@ You are an implementer agent. Implement the following GitHub Issue.
 - **Estimated size:** {size_label}
 - **Token range:** {lower}-{upper}
 
+## Board IDs
+
+- **Board number:** {board_number}
+- **Owner:** {owner}
+- **Project node ID:** {project_node_id}
+- **Status field ID:** {status_field_id}
+- **"In Review" option ID:** {in_review_option_id}
+
 ## PR Template
 
 {pr_body_template}

@@ -29,6 +29,7 @@ When spawned, your prompt will contain:
 8. **Must-read context** (bodies of issues tagged `meta:mustread`, if any)
 9. **Sizing info** (estimated `size:` label, token range lower-upper)
 10. **PR body template** (from `limbic:structure`)
+11. **Board IDs** (project node ID, Status field ID, "In Review" option ID, board_number, owner)
 
 ## Core Rules
 
@@ -122,6 +123,10 @@ When spawned, your prompt will contain:
 
 ### Phase 8: Update Issue State
 21. Remove `status:in-progress` label, add `status:in-review` label
+21a. Update board status to "In Review":
+    - Query your issue's item ID: `gh project item-list {board_number} --owner {owner} --format json --jq '.items[] | select(.content.number == {issue_number}) | .id'`
+    - Set Status: `gh project item-edit --id {item_id} --field-id {status_field_id} --project-id {project_node_id} --single-select-option-id {in_review_option_id}`
+    - Board IDs (project_node_id, status_field_id, in_review_option_id) are provided in your prompt inputs under "Board IDs".
 22. Post the structured result comment (see Phase 9)
 
 ### Phase 9: Report

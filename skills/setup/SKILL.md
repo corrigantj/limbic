@@ -58,7 +58,35 @@ Present recommended defaults section by section. For each section, show the defa
      base_branch: {detected}
    ```
 
-2. **Sizing buckets**
+2. **Project board** — create or reuse a GitHub Project board for visual tracking.
+   - Ask: "What would you like to name your project board?" Default recommendation: the repo name.
+   - Check if a board with that title already exists: `gh project list --owner {owner} --format json`
+   - If exists: "Found existing board '{title}' (#{number}). Use this one?" — if yes, store and skip creation.
+   - If not:
+     - Create: `gh project create --owner {owner} --title "{title}" --format json` — extract `number`
+     - Get the project's GraphQL node ID: `gh project view {number} --owner {owner} --format json --jq '.id'`
+     - Get the repo's GraphQL node ID: `gh api graphql -f query='{ repository(owner: "{owner}", name: "{repo}") { id } }' --jq '.data.repository.id'`
+     - Link to repo:
+       ```graphql
+       mutation { linkProjectV2ToRepository(input: { projectId: "{project_node_id}", repositoryId: "{repo_node_id}" }) { clientMutationId } }
+       ```
+     - Store `board_number` and `board_title` in config
+   - Determine owner type for URL: `gh api users/{owner} --jq '.type'` (returns "User" or "Organization")
+   - Present workflow automation guide:
+     > "Now configure the board's automation. Open this URL:"
+     > `https://github.com/{users|orgs}/{owner}/projects/{number}/settings/workflows`
+     >
+     > Enable these workflows:
+     > 1. **Item added to project** → Set status to "Ready"
+     > 2. **Item closed** → Set status to "Done"
+     > 3. **Item reopened** → Set status to "Ready"
+     >
+     > Also set the default view to Board layout grouped by Status.
+     >
+     > Let me know when you've done this.
+   - Wait for user confirmation before proceeding.
+
+3. **Sizing buckets**
    ```yaml
    sizing:
      metric: tokens
@@ -70,14 +98,14 @@ Present recommended defaults section by section. For each section, show the defa
        xl: { lower: 500000, upper: null, description: "Must be split" }
    ```
 
-3. **Wiki settings**
+4. **Wiki settings**
    ```yaml
    wiki:
      directory: .wiki
      auto_clone: true
    ```
 
-4. **Labels** — show the full default taxonomy:
+5. **Labels** — show the full default taxonomy:
    - Priority: critical, high, medium, low
    - Meta: ignore, mustread
    - Size: xs, s, m, l, xl
@@ -86,7 +114,7 @@ Present recommended defaults section by section. For each section, show the defa
    - Backlog: now, next, later, icebox
    - Ask: "Any custom labels to add?"
 
-5. **Approval gates** — these control where limbic pauses to ask for your permission. Present as a checklist of plain-language descriptions (not raw YAML). Default is fully autonomous (no gates enabled):
+6. **Approval gates** — these control where limbic pauses to ask for your permission. Present as a checklist of plain-language descriptions (not raw YAML). Default is fully autonomous (no gates enabled):
    - **Pause before dispatching agents** — ask before spawning implementation agents (default: off)
    - **Pause before merging PRs** — ask before merging approved task PRs into the feature branch (default: off)
    - **Pause before closing milestones** — ask before closing the milestone during integrate (default: off)
@@ -103,7 +131,7 @@ Present recommended defaults section by section. For each section, show the defa
      before_wiki_update: false   # "Pause before updating wiki"
    ```
 
-Remaining config sections (`branches`, `worktrees`, `commands`, `epics`, `validation`, `review`) use sensible defaults and can be customized by editing `.github/limbic.yaml` directly after init completes.
+Remaining config sections (`branches`, `worktrees`, `commands`, `epics`, `validation`, `review`) use sensible defaults and can be customized by editing `.github/limbic.yaml` directly after setup completes.
 
 After all sections are confirmed, write `.github/limbic.yaml` using the Write tool directly (do NOT run `mkdir` first — Write creates parent directories automatically, and a separate `mkdir` triggers an unnecessary permission prompt).
 
@@ -171,11 +199,14 @@ Read each failed check's `fix` field. Decide per-check:
 - Missing Home.md → clone wiki, create Home.md with a landing page, commit and push
 - Missing config → should not happen here (wizard creates it), but generate defaults if needed
 - Deprecated `merge` key in config → suggest removing it: "The `merge` section is no longer used — merge strategy is now hardcoded. Remove the `merge:` block from your `.github/limbic.yaml`."
+- Missing board → create the board and link it to the repo using the commands from the wizard Section 2
+- Board not linked → run the `linkProjectV2ToRepository` GraphQL mutation
 
 **Needs human action:**
 - Wiki not enabled → tell the user: "Wiki is not enabled. Enable it in repo Settings > General > Features > Wiki. Let me know when it's done and I'll re-check."
 - gh CLI not authenticated → tell the user: "Run `gh auth login` and let me know when done."
 - No GitHub remote → tell the user: "Add a GitHub remote: `git remote add origin https://github.com/{owner}/{repo}.git`"
+- Workflow automations not configured → present the project board settings URL and walk the user through enabling the three workflows (Item added → Ready, Item closed → Done, Item reopened → Ready)
 
 After executing all model-fixable items and confirming human-fixable items, proceed to Step 7.
 

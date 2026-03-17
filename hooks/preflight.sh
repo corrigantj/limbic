@@ -3,7 +3,7 @@
 # Gates: structure, dispatch, review, integrate
 # Passes: setup, status, and all non-limbic skills
 
-set -euo pipefail
+set -uo pipefail
 
 PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNNER="${PLUGIN_ROOT}/scripts/preflight-checks/runner.sh"
@@ -22,7 +22,7 @@ try:
     print(skill)
 except Exception:
     print('')
-" 2>/dev/null)
+" 2>/dev/null) || skill_name=""
 
 # Pass through non-limbic skills and ungated limbic skills
 case "$skill_name" in
@@ -49,7 +49,7 @@ if [ $runner_exit -eq 0 ]; then
 import sys, json
 lines = sys.stdin.read().strip()
 print(json.dumps(lines))
-" 2>/dev/null)
+" 2>/dev/null) || escaped_output="\"preflight passed\""
   echo "{\"decision\":\"allow\",\"additionalContext\":${escaped_output}}"
 else
   # Checks failed — deny with JSONL as reason
@@ -57,7 +57,7 @@ else
 import sys, json
 lines = sys.stdin.read().strip()
 print(json.dumps(lines))
-" 2>/dev/null)
+" 2>/dev/null) || escaped_output="\"preflight failed\""
   echo "{\"decision\":\"deny\",\"permissionDecisionReason\":${escaped_output}}"
 fi
 

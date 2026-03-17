@@ -30,7 +30,7 @@ Three failures occurred when `limbic:dispatch` spawned implementer agents in the
 {"check":"repo_root","status":"pass","value":"/absolute/path/to/project","message":"Repo root resolved from limbic.yaml location"}
 ```
 
-Resolution logic: find the directory containing `.github/limbic.yaml`, go up one level. Use the absolute path of the config file as the anchor — no reliance on `git rev-parse` or CWD.
+Resolution logic: convert `CONFIG_PATH` to an absolute path (via `realpath` or `cd "$(dirname "$CONFIG_PATH")" && pwd`), then go up one level from `.github/`. This is necessary because `check-config.sh` receives `CONFIG_PATH` as a relative path (default `.github/limbic.yaml`). The emitted `value` must be an absolute path — no reliance on `git rev-parse` or CWD.
 
 On failure (config not found):
 
@@ -42,9 +42,9 @@ On failure (config not found):
 
 ### 2. Dispatch Owns Worktree Creation
 
-**Current behavior:** Dispatch uses `isolation: "worktree"` on the Agent tool AND the implementer creates its own worktree in Phase 1 via `superpowers:using-git-worktrees`. Two redundant mechanisms, both broken by the `.wiki/` context.
+**Current behavior:** The dispatch SKILL.md instructs spawning agents via "the Task tool with `subagent_type: "implementer"`". At runtime, the coordinator used the Agent tool with `isolation: "worktree"`, which creates worktrees from the session's git context. Separately, the implementer agent definition (Phase 1) instructs the agent to create its own worktree via `superpowers:using-git-worktrees`. These two redundant worktree creation mechanisms were both broken by the `.wiki/` context.
 
-**New behavior:** Dispatch creates the worktree explicitly before spawning each agent.
+**New behavior:** Dispatch creates the worktree explicitly before spawning each agent. The Agent tool is used **without** `isolation: "worktree"`.
 
 For each issue in the batch, dispatch:
 
@@ -101,7 +101,7 @@ permissionMode: dontAsk
 - **Branch name:** {branch_prefix}/{issue_number}-{slug}
 - **Branch from:** {feature_branch} (NOT main)
 - **PR target:** {feature_branch} (NOT main)
-- **Worktree path:** {worktree_path} (PRE-CREATED — do not create, validate only)
+- **Worktree path:** {worktree_path} (PRE-CREATED absolute path — do not create, validate only)
 ```
 
 The Instructions section removes "create your worktree" and replaces with "validate your pre-created worktree."
@@ -131,7 +131,7 @@ After confirmation, setup writes (or merges into) `.claude/settings.json` in the
 
 **New script: `check-permissions.sh`**
 
-Verifies `.claude/settings.json` exists and contains minimum Bash permissions for subagents (`git`, `gh` at minimum).
+Verifies `.claude/settings.json` exists and its `permissions.allow` array contains minimum Bash permission glob patterns for subagents (at minimum `Bash(git:*)` and `Bash(gh:*)`).
 
 ```json
 {"check":"subagent_permissions","status":"pass","message":"Bash permissions configured for subagents"}
@@ -170,7 +170,7 @@ On failure:
 1. Creates the worktree for each issue (validates git plumbing works from `repo_root`)
 2. Fills the implementer prompt template for each issue
 3. Prints each filled prompt
-4. Removes the worktrees it just created
+4. Removes the worktrees it just created (via `git -C {repo_root} worktree remove {path}`)
 5. Reports:
 
 ```markdown

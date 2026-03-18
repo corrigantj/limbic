@@ -52,3 +52,14 @@ if [ -f "${cloned_wiki}/_PRD-Template.md" ]; then
 else
   emit "wiki.prd_template" "warn" "_PRD-Template.md not found in wiki — will be created by limbic:structure on first epic"
 fi
+
+# wiki.gitignore — .wiki/ should be in .gitignore to prevent accidental commits
+WIKI_DIR="${WIKI_DIR:-.wiki}"
+if [ -f ".gitignore" ] && grep -qxF "${WIKI_DIR}/" .gitignore; then
+  emit "wiki.gitignore" "pass" "${WIKI_DIR}/ is in .gitignore"
+elif [ -f ".gitignore" ] && grep -qxF "${WIKI_DIR}" .gitignore; then
+  emit "wiki.gitignore" "pass" "${WIKI_DIR} is in .gitignore"
+else
+  emit "wiki.gitignore" "fail" "${WIKI_DIR}/ not in .gitignore — wiki clone could be accidentally committed" \
+    "Add ${WIKI_DIR}/ to .gitignore"
+fi

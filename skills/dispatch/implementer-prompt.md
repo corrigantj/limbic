@@ -37,7 +37,7 @@ You are an implementer agent. Implement the following GitHub Issue.
 - **Branch name:** {branch_prefix}/{issue_number}-{slug}
 - **Branch from:** {feature_branch} (NOT main)
 - **PR target:** {feature_branch} (NOT main)
-- **Worktree path:** {worktree_dir}/{branch_prefix}/{issue_number}-{slug}
+- **Worktree path:** {worktree_path} (PRE-CREATED absolute path — do not create, validate only)
 
 ## Build Commands
 
@@ -66,10 +66,11 @@ You are an implementer agent. Implement the following GitHub Issue.
 
 1. Read the `agents/implementer.md` agent definition in the limbic plugin for your full procedure
 2. Follow the 9-phase execution procedure exactly
-3. **Branch from and PR back to the FEATURE BRANCH**, not main
-4. Use TDD — write failing tests first for each scenario
-5. Report progress via GitHub Issue comments
-6. Record token calibration in your lessons-learned comment
-7. Return a structured YAML result when done
+3. **Your worktree is pre-created** at the path above — validate it, do not create a new one
+4. **Branch from and PR back to the FEATURE BRANCH**, not main
+5. Use TDD — write failing tests first for each scenario
+6. Report progress via GitHub Issue comments
+7. Record token calibration in your lessons-learned comment
+8. Return a structured YAML result when done
 
 Begin.

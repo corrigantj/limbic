@@ -16,13 +16,26 @@ emit() {
   fi
 }
 
+emit_value() {
+  local check="$1" status="$2" message="$3" value="$4"
+  jq -nc --arg c "$check" --arg s "$status" --arg m "$message" --arg v "$value" \
+    '{check:$c, status:$s, message:$m, value:$v}'
+}
+
 # config.exists
 if [ ! -f "$CONFIG_PATH" ]; then
+  emit "repo_root" "fail" "Cannot resolve repo root — .github/limbic.yaml not found" \
+    "Run limbic:setup to create .github/limbic.yaml"
   emit "config.exists" "fail" "Config file not found: ${CONFIG_PATH}" \
     "Run limbic:setup to create .github/limbic.yaml"
   exit 0
 fi
 emit "config.exists" "pass" "Config file found: ${CONFIG_PATH}"
+
+# repo_root — resolve absolute path from config location
+abs_config="$(cd "$(dirname "$CONFIG_PATH")" && pwd)/$(basename "$CONFIG_PATH")"
+repo_root="$(dirname "$(dirname "$abs_config")")"
+emit_value "repo_root" "pass" "Repo root resolved from limbic.yaml location" "$repo_root"
 
 # config.yaml_valid
 yaml_result="$(python3 - "$CONFIG_PATH" <<'PYEOF'

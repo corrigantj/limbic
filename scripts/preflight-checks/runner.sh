@@ -91,5 +91,6 @@ run_check "labels" "${SCRIPT_DIR}/check-labels.sh"
 run_check "wiki" "${SCRIPT_DIR}/check-wiki.sh"
 run_check "project" "${SCRIPT_DIR}/check-project.sh"
 run_check "permissions" "${SCRIPT_DIR}/check-permissions.sh"
+run_check "codeowners" "${SCRIPT_DIR}/check-codeowners.sh"
 
 if $has_fail; then exit 1; else exit 0; fi

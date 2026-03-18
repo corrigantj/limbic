@@ -86,7 +86,7 @@ review:
   polling_interval: 60    # Seconds between review-state polls
   polling_timeout: 3600   # Max seconds before polling gives up (default: 1 hour)
   polling_model: haiku    # Model used for polling (haiku | sonnet)
-  require_codeowners: false  # Require CODEOWNERS approval before merge
+  require_codeowners: true   # Require CODEOWNERS approval before merge
 
 # ─── Sizing ──────────────────────────────────────────────────────────────────
 # Token-based sizing determines the size/ label assigned to each issue.

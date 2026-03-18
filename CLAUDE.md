@@ -22,7 +22,8 @@ limbic/
 │       ├── check-labels.sh        # Label taxonomy matches config
 │       ├── check-wiki.sh          # Wiki clone, Home page, templates, .gitignore
 │       ├── check-permissions.sh   # Subagent Bash permissions in .claude/settings.json
-│       └── check-project.sh      # Project board existence, linkage, Status field
+│       ├── check-project.sh      # Project board existence, linkage, Status field
+│       └── check-codeowners.sh   # CODEOWNERS file exists with valid rules
 ├── skills/                        # 6 skills: setup, structure, dispatch, status, review, integrate
 │   ├── setup/                     # Setup wizard, preflight runner, drift remediation
 │   ├── structure/                 # PRD → Wiki + Milestone + Issues + feature branch
@@ -68,6 +69,7 @@ limbic:setup → .github/limbic.yaml + GitHub artifacts (labels, wiki, project b
 6. **PRD lifecycle** — Draft → In Review → Active → Approved → Superseded
 7. **Token-based sizing** — configurable buckets in `.github/limbic.yaml`, calibrated via retros
 8. **Dispatch creates worktrees, agents validate** — worktrees branch from the feature branch, created by dispatch via `git -C {repo_root}`, validated by the implementer via `superpowers:using-git-worktrees`
+9. **CODEOWNERS required by default** — `review.require_codeowners` defaults to `true`; PRs are never self-merged without human CODEOWNER approval
 
 ## Prerequisites
 

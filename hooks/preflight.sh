@@ -31,7 +31,7 @@ case "$skill_name" in
     ;;
   *)
     # Not gated — allow without context
-    echo '{"decision":"allow"}'
+    echo '{"hookSpecificOutput":{"permissionDecision":"allow"}}'
     exit 0
     ;;
 esac
@@ -44,21 +44,21 @@ else
 fi
 
 if [ $runner_exit -eq 0 ]; then
-  # All checks passed — allow with JSONL as additionalContext
+  # All checks passed — allow with JSONL as systemMessage
   escaped_output=$(echo "$preflight_output" | python3 -c "
 import sys, json
 lines = sys.stdin.read().strip()
 print(json.dumps(lines))
 " 2>/dev/null) || escaped_output="\"preflight passed\""
-  echo "{\"decision\":\"allow\",\"additionalContext\":${escaped_output}}"
+  echo "{\"hookSpecificOutput\":{\"permissionDecision\":\"allow\"},\"systemMessage\":${escaped_output}}"
 else
-  # Checks failed — deny with JSONL as reason
+  # Checks failed — deny with JSONL as systemMessage
   escaped_output=$(echo "$preflight_output" | python3 -c "
 import sys, json
 lines = sys.stdin.read().strip()
 print(json.dumps(lines))
 " 2>/dev/null) || escaped_output="\"preflight failed\""
-  echo "{\"decision\":\"deny\",\"permissionDecisionReason\":${escaped_output}}"
+  echo "{\"hookSpecificOutput\":{\"permissionDecision\":\"deny\"},\"systemMessage\":${escaped_output}}"
 fi
 
 exit 0

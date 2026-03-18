@@ -69,6 +69,7 @@ Main agent receives review data. Route based on review state:
 - **Approved** -> proceed to Step 5
 - **Changes Requested** -> proceed to Step 4
 - **Comments only** (no formal review verdict) -> address comments, push, resume polling (back to Step 2)
+- **No reviews / Timeout** -> report to user and **wait for direction**. Never self-merge. If polling timed out, present: "No human reviews received within the polling window. Waiting for review on {PR list}. Ask the reviewer or extend `review.polling_timeout` in `.github/limbic.yaml`."
 
 ### Step 4: Address Feedback
 
@@ -91,7 +92,7 @@ For each requested change or comment:
    ```
    If behind, rebase onto feature branch and wait for CI.
 
-2. If `review.require_codeowners` is true, verify a matching CODEOWNER has approved
+2. **CODEOWNERS gate (default: on):** If `review.require_codeowners` is true (the default), verify a matching CODEOWNER has approved. If no CODEOWNER approval exists, **do not merge** — report the gap and resume polling. To find CODEOWNERS, check `CODEOWNERS`, `.github/CODEOWNERS`, and `docs/CODEOWNERS`.
 
 3. Merge the task PR (task PRs always rebase into the feature branch for clean history):
    ```bash
@@ -161,7 +162,7 @@ After all current PRs in this cycle are processed:
 
 ## Important Rules
 
-1. **Never merge without approval** — or CODEOWNERS approval if `review.require_codeowners` is true
+1. **Never merge without human approval** — always wait for at least one human review. If `review.require_codeowners` is true (the default), a matching CODEOWNER must approve. If no reviews exist yet, **continue polling** — never self-merge
 2. **Always rebase onto feature branch** before merging — ensures clean history
 3. **Run tests after addressing feedback** — before pushing updated commits
 4. **Append review data to Lessons Learned on every merged PR** — no exceptions, this feeds the full retrospective

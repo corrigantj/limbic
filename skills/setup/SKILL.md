@@ -157,6 +157,22 @@ Present recommended defaults section by section. For each section, show the defa
 
    After confirmation, read `.claude/settings.json` if it exists, merge the new permissions into the `permissions.allow` array (preserving existing entries), and write it back using the Write tool.
 
+8. **CODEOWNERS** — limbic requires human review approval before merging PRs (`review.require_codeowners` defaults to true). This means a CODEOWNERS file must exist.
+
+   Check for existing CODEOWNERS in standard locations (`CODEOWNERS`, `.github/CODEOWNERS`, `docs/CODEOWNERS`):
+   - If found: "Found CODEOWNERS at {path}. Using existing file."
+   - If not found:
+     - Detect the repo owner: `gh api repos/{owner}/{repo} --jq '.owner.login'`
+     - Propose a default CODEOWNERS file at `.github/CODEOWNERS`:
+       ```
+       # Default: repo owner is responsible for all files
+       * @{owner}
+       ```
+     - Ask: "Who should be listed as code owners? Default is @{owner} for all files. You can add team-specific rules later."
+     - After confirmation, write `.github/CODEOWNERS` using the Write tool
+
+   If the user explicitly opts out of CODEOWNERS, set `review.require_codeowners: false` in the config and warn: "Without CODEOWNERS, limbic may self-merge PRs without human review."
+
 Remaining config sections (`branches`, `worktrees`, `commands`, `epics`, `validation`, `review`) use sensible defaults and can be customized by editing `.github/limbic.yaml` directly after setup completes.
 
 After all sections are confirmed, write `.github/limbic.yaml` using the Write tool directly (do NOT run `mkdir` first — Write creates parent directories automatically, and a separate `mkdir` triggers an unnecessary permission prompt).
@@ -229,6 +245,7 @@ Read each failed check's `fix` field. Decide per-check:
 - Board not linked → run the `linkProjectV2ToRepository` GraphQL mutation
 - Missing .wiki/ in .gitignore → append `.wiki/` (or configured `wiki.directory` value) to `.gitignore`
 - Missing subagent permissions → read `.claude/settings.json`, merge required Bash permissions into `permissions.allow`, write back
+- Missing CODEOWNERS → create `.github/CODEOWNERS` with `* @{owner}` as default, confirm with user
 
 **Needs human action:**
 - Wiki not enabled → tell the user: "Wiki is not enabled. Enable it in repo Settings > General > Features > Wiki. Let me know when it's done and I'll re-check."

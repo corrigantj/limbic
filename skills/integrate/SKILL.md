@@ -122,7 +122,7 @@ Read `polling-prompt.md` from the `limbic:review` skill directory and fill in th
 3. On review comments: address feedback, push fixes to feature branch
 4. On approval: proceed to merge
 5. On timeout: report to user and wait for direction
-6. If `review.require_codeowners` is true, verify CODEOWNERS approval before proceeding
+6. **CODEOWNERS gate (default: on):** If `review.require_codeowners` is true (the default), verify a matching CODEOWNER has approved before proceeding. If no CODEOWNER approval exists, **do not merge** — report the gap and continue polling
 
 ### Step 6: On Approval — Merge
 

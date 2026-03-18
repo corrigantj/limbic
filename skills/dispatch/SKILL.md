@@ -57,6 +57,8 @@ review:
   reviewers: []      # GitHub usernames to request review from
 ```
 
+**Resolve `repo_root`:** Read the `repo_root` value from preflight JSONL output (emitted by `check-config.sh`). All subsequent `git worktree` and `git -C` commands use this absolute path. Do not use `git rev-parse --show-toplevel` — it can resolve to `.wiki/` if the session's CWD is inside the wiki clone.
+
 **Auto-detect build commands** if not configured:
 - `package.json` exists -> `npm test`, `npm run lint`, `npm run build`
 - `Cargo.toml` exists -> `cargo test`, `cargo clippy`, `cargo build`
@@ -139,6 +141,50 @@ Before dispatching, resolve board field IDs (once per dispatch invocation):
 
 These IDs are stable for the duration of a dispatch invocation.
 
+### Step 5b: Dry-Run Mode (Optional)
+
+If the user requested a dry run (`/dispatch --dry-run` or dry-run argument in the prompt), execute the full pipeline validation without spawning agents:
+
+1. For each issue in the batch, create the worktree from `repo_root` (validates git plumbing):
+   ```bash
+   git -C {repo_root} worktree add \
+     {repo_root}/{worktree_dir}/{branch_prefix}/{issue_number}-{slug} \
+     -b {branch_prefix}/{issue_number}-{slug} \
+     {feature_branch}
+   ```
+   Record PASS/FAIL per issue. On failure, continue to the next issue (do not abort).
+
+2. Fill the implementer prompt template for each issue (same as Step 6 items 5-9).
+
+3. Print each filled prompt to output.
+
+4. Remove all worktrees created during dry run:
+   ```bash
+   git -C {repo_root} worktree remove {path}
+   ```
+   Also delete the branches created by `worktree add -b`:
+   ```bash
+   git -C {repo_root} branch -D {branch_prefix}/{issue_number}-{slug}
+   ```
+
+5. Report:
+   ```markdown
+   ## Dry Run Complete
+
+   **Would dispatch:** {count} agents
+   **Worktree creation:** {PASS/FAIL for each}
+   **Bash permissions:** {PASS from preflight or FAIL}
+
+   | # | Title | Branch | Worktree Path | Prompt Length |
+   |---|-------|--------|---------------|--------------|
+   | {n} | {title} | {branch} | {path} | ~{tokens} |
+
+   Filled prompts printed above.
+   No agents were spawned. Run dispatch without --dry-run to execute.
+   ```
+
+6. Stop. Do not proceed to Step 6.
+
 ### Step 6: Dispatch Agents
 
 For each issue in the batch:
@@ -148,7 +194,14 @@ For each issue in the batch:
 
 2. **Generate worktree path:** `{worktree_dir}/{branch_prefix}/{issue_number}-{slug}`
 
-3. **Worktree creation is delegated to the agent** — the implementer agent creates its own worktree via `superpowers:using-git-worktrees` in Phase 1. dispatch does NOT create the worktree or branch; it only provides the branch name and worktree path in the agent prompt.
+3. **Create the worktree** from `repo_root` — dispatch creates the worktree before spawning the agent. The agent receives a ready-to-use worktree and validates it (does not create it).
+   ```bash
+   git -C {repo_root} worktree add \
+     {repo_root}/{worktree_dir}/{branch_prefix}/{issue_number}-{slug} \
+     -b {branch_prefix}/{issue_number}-{slug} \
+     {feature_branch}
+   ```
+   The worktree path passed to the agent is always an absolute path.
 
 4. **Label the issue** `status:in-progress` (remove `status:ready`)
 
@@ -179,12 +232,13 @@ For each issue in the batch:
    - Size label and token range from `sizing.token_ranges`
    - Board IDs for implementer: project node ID, Status field ID, "In Review" option ID, board_number, owner
 
-10. **Spawn the agent** using the Task tool:
+10. **Spawn the agent** using the Agent tool (no `isolation: "worktree"` — the worktree was already created in step 3):
     ```
-    Task tool with subagent_type: "implementer"
+    Agent tool with subagent_type: "limbic:implementer"
     prompt: {filled implementer prompt}
     model: {from config, default opus}
     ```
+    Do NOT use `isolation: "worktree"` — this creates worktrees from the session's git context, which may be `.wiki/` after `limbic:structure`. Dispatch owns worktree creation.
 
 Spawn all agents in a single message (parallel tool calls) for maximum concurrency.
 
@@ -235,19 +289,19 @@ Rules:
 
 ## Worktree Lifecycle
 
-Worktrees are created by the implementer agent (Phase 1) and need lifecycle management across dispatch, review, and integration.
+Worktrees are created by dispatch (Step 6 item 3) and need lifecycle management across dispatch, review, and integration.
 
 ### Before Dispatch: Existence Check
 
 Before spawning an agent for an issue, check if a worktree already exists at the target path:
 ```bash
-git worktree list | grep "{worktree_path}"
+git -C {repo_root} worktree list | grep "{worktree_path}"
 ```
 
 | Condition | Action |
 |-----------|--------|
-| No worktree exists | Normal path — agent creates it in Phase 1 |
-| Worktree exists, branch matches | Re-dispatch scenario (agent failed/blocked previously). Remove the stale worktree first: `git worktree remove {path} --force`, then dispatch normally |
+| No worktree exists | Normal path — dispatch creates it in Step 6 item 3 |
+| Worktree exists, branch matches | Re-dispatch scenario (agent failed/blocked previously). Remove the stale worktree first: `git -C {repo_root} worktree remove {path} --force`, then dispatch normally |
 | Worktree exists, branch differs | Conflict — another issue was assigned this path. Report error, skip this issue |
 
 ### On Agent Failure
@@ -268,8 +322,8 @@ When `limbic:review` needs to address feedback on a task PR:
 
 All worktrees for the milestone are cleaned up after merge:
 ```bash
-git worktree remove {path}  # for each completed worktree
-git worktree prune
+git -C {repo_root} worktree remove {path}  # for each completed worktree
+git -C {repo_root} worktree prune
 ```
 
 ## Important Rules
@@ -278,7 +332,7 @@ git worktree prune
 2. **File overlap = sequential** — issues touching the same files must be in different batches
 3. **Check dependencies are truly resolved** — a closed issue with a reverted PR is NOT resolved
 4. **Each agent gets a fresh context** — pass all needed information in the prompt, don't assume shared state
-5. **Use the Task tool** — agents are spawned via `Task` with `subagent_type: "implementer"`, NOT via bash
+5. **Use the Agent tool** — agents are spawned via `Agent` with `subagent_type: "limbic:implementer"`, NOT via bash. Do NOT use `isolation: "worktree"`.
 6. **Branch from the feature branch** — never branch from main; agents PR back to the feature branch
 7. **Inject mustread context** — every agent receives the bodies of all `meta:mustread` issues as context
 8. **Check worktree existence** before dispatch — handle re-dispatch and conflict scenarios

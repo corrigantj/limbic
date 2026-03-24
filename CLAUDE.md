@@ -14,6 +14,7 @@ limbic/
 │   ├── session-start.sh           # Injects slim routing table on session start
 │   └── preflight.sh               # PreToolUse gate — runs preflight before gated skills
 ├── scripts/
+│   ├── create-stabilization-ticket.sh  # Idempotent stabilization ticket creation
 │   └── preflight-checks/          # Deterministic bash checks, JSONL output
 │       ├── runner.sh              # Orchestrator — runs all checks, aggregates output
 │       ├── check-env.sh           # gh CLI, git repo, GitHub remote
@@ -23,8 +24,9 @@ limbic/
 │       ├── check-wiki.sh          # Wiki clone, Home page, templates, .gitignore
 │       ├── check-permissions.sh   # Subagent Bash permissions in .claude/settings.json
 │       ├── check-project.sh      # Project board existence, linkage, Status field
-│       └── check-codeowners.sh   # CODEOWNERS file exists with valid rules
-├── skills/                        # 6 skills: setup, structure, dispatch, status, review, integrate
+│       ├── check-codeowners.sh   # CODEOWNERS file exists with valid rules
+│       └── check-stabilization.sh  # Stabilization tickets exist for open milestones
+├── skills/                        # 7 skills: setup, structure, dispatch, status, review, integrate, issue
 │   ├── setup/                     # Setup wizard, preflight runner, drift remediation
 │   ├── structure/                 # PRD → Wiki + Milestone + Issues + feature branch
 │   │   ├── story-template.md
@@ -38,9 +40,13 @@ limbic/
 │   ├── status/                    # Progress dashboard with sub-issue grouping
 │   ├── review/                    # Task PR polling, merge to feature branch, lessons learned
 │   │   └── polling-prompt.md
-│   └── integrate/                 # Feature→main PR, retro, wiki update, calibration
-│       └── retro-template.md
-├── agents/implementer.md          # Subordinate agent: 9-phase TDD workflow
+│   ├── integrate/                 # Feature→main PR, retro, wiki update, calibration
+│   │   └── retro-template.md
+│   └── issue/                     # Ad-hoc issue creation, investigation, triage
+│       └── investigator-prompt.md
+├── agents/
+│   ├── implementer.md             # Subordinate agent: 9-phase TDD workflow
+│   └── investigator.md            # Subordinate agent: 10-phase investigation workflow
 ├── templates/limbic.yaml          # Configuration schema with sizing buckets
 ├── CLAUDE.md
 ├── LICENSE
@@ -57,6 +63,7 @@ limbic:setup → .github/limbic.yaml + GitHub artifacts (labels, wiki, project b
 → limbic:status → Progress dashboard (run anytime, crash recovery)
 → limbic:review → Task PRs reviewed, merged into feature branch, lessons learned
 → limbic:integrate → Feature branch → main PR, retro, wiki update, close milestone
+→ limbic:issue → Ad-hoc issue spike, investigation, triage (anytime)
 ```
 
 ## Key Conventions
@@ -64,12 +71,14 @@ limbic:setup → .github/limbic.yaml + GitHub artifacts (labels, wiki, project b
 1. **GitHub Issues + Wiki are the durable state machine** — all progress survives session crashes
 2. **Two-wave PR model** — task PRs → feature branch (wave 1, review), feature → main (wave 2, integrate)
 3. **Dependencies encoded as HTML comments** — `<!-- limbic:blocked-by #12, #15 -->` and `<!-- limbic:parent #10 -->`
-4. **Label taxonomy** — `epic:`, `priority:`, `meta:`, `size:`, `status:`, `type:`, `backlog:` prefixes (`:` delimiter)
+4. **Label taxonomy** — `epic:`, `priority:`, `severity:`, `meta:`, `size:`, `status:`, `type:`, `backlog:` prefixes (`:` delimiter)
 5. **Versioned epics** — lower-kebab-case naming: `{epic}-v{Major}.{Minor}`
 6. **PRD lifecycle** — Draft → In Review → Active → Approved → Superseded
 7. **Token-based sizing** — configurable buckets in `.github/limbic.yaml`, calibrated via retros
 8. **Dispatch creates worktrees, agents validate** — worktrees branch from the feature branch, created by dispatch via `git -C {repo_root}`, validated by the implementer via `superpowers:using-git-worktrees`
 9. **CODEOWNERS required by default** — `review.require_codeowners` defaults to `true`; PRs are never self-merged without human CODEOWNER approval
+10. **Severity + Priority** — two-axis triage: `severity:` (impact on system) + `priority:` (urgency of fix)
+11. **Stabilization tickets** — one per milestone, `type:task` + `meta:ignore`, created at milestone creation time
 
 ## Prerequisites
 
@@ -90,3 +99,4 @@ Run `limbic:setup` to verify all prerequisites and configure the repository.
 | `limbic:status` | View progress dashboard from GitHub state |
 | `limbic:review` | Poll task PRs for reviews, merge into feature branch, capture lessons learned |
 | `limbic:integrate` | Merge feature branch to main, create retro, update wiki, calibrate sizing |
+| `limbic:issue` | Ad-hoc issue creation, investigation, triage, and fix execution |

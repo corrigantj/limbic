@@ -112,6 +112,7 @@ Present recommended defaults section by section. For each section, show the defa
    - Status: ready, in-progress, in-review, blocked, done
    - Type: story, task, bug (only if Issue Types unavailable)
    - Backlog: now, next, later, icebox
+   - Severity: critical, major, minor, trivial
    - Ask: "Any custom labels to add?"
 
 6. **Approval gates** — these control where limbic pauses to ask for your permission. Present as a checklist of plain-language descriptions (not raw YAML). Default is fully autonomous (no gates enabled):
@@ -246,6 +247,7 @@ Read each failed check's `fix` field. Decide per-check:
 - Missing .wiki/ in .gitignore → append `.wiki/` (or configured `wiki.directory` value) to `.gitignore`
 - Missing subagent permissions → read `.claude/settings.json`, merge required Bash permissions into `permissions.allow`, write back
 - Missing CODEOWNERS → create `.github/CODEOWNERS` with `* @{owner}` as default, confirm with user
+- Missing stabilization ticket → run `bash scripts/create-stabilization-ticket.sh --owner {owner} --repo {repo} --milestone-title '{title}' --milestone-number {number}` for each flagged milestone
 
 **Needs human action:**
 - Wiki not enabled → tell the user: "Wiki is not enabled. Enable it in repo Settings > General > Features > Wiki. Let me know when it's done and I'll re-check."

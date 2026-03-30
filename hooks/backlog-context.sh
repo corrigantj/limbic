@@ -38,7 +38,7 @@ fi
 count=0
 for tier in now next later icebox; do
   n=$(gh issue list --repo "$repo_slug" --label "backlog:${tier}" \
-    --state open --json number --jq 'length' 2>/dev/null || echo 0)
+    --state open --json number --jq 'length' --limit 1000 2>/dev/null || echo 0)
   count=$((count + n))
 done
 
@@ -52,7 +52,7 @@ fi
 read -r -d '' msg <<SYSMSG || true
 This repo has ${count} open backlog items. Early in the brainstorming session, ask the user: "There are ${count} items in the backlog. Want me to check for anything relevant to what we're working on?" If they say yes, fetch the backlog issues with:
   for tier in now next later icebox; do
-    gh issue list --repo ${repo_slug} --label "backlog:\${tier}" --state open --json number,title,labels
+    gh issue list --repo ${repo_slug} --label "backlog:\${tier}" --state open --json number,title,labels --limit 1000
   done
 Merge the results, cluster by theme, and present a summary.
 SYSMSG

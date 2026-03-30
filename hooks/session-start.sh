@@ -31,6 +31,7 @@ You have project management capabilities via the limbic plugin.
 | \"Merge\" / \"Ship it\" / \"Integrate\" | limbic:integrate |
 | \"File a bug\" / \"Report issue\" / \"Investigate\" | limbic:issue |
 | \"Fix issue #N\" | limbic:issue |
+| \"Backlog\" / \"Remember this idea\" / \"Quick capture\" | limbic:issue (backlog mode) |
 
 ## Flow
 

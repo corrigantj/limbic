@@ -12,7 +12,8 @@ limbic/
 ├── hooks/                         # SessionStart + PreToolUse hooks
 │   ├── hooks.json                 # Hook event definitions (SessionStart, PreToolUse)
 │   ├── session-start.sh           # Injects slim routing table on session start
-│   └── preflight.sh               # PreToolUse gate — runs preflight before gated skills
+│   ├── preflight.sh               # PreToolUse gate — runs preflight before gated skills
+│   └── backlog-context.sh         # Injects backlog count into brainstorming sessions
 ├── scripts/
 │   ├── create-stabilization-ticket.sh  # Idempotent stabilization ticket creation
 │   └── preflight-checks/          # Deterministic bash checks, JSONL output
@@ -99,4 +100,4 @@ Run `limbic:setup` to verify all prerequisites and configure the repository.
 | `limbic:status` | View progress dashboard from GitHub state |
 | `limbic:review` | Poll task PRs for reviews, merge into feature branch, capture lessons learned |
 | `limbic:integrate` | Merge feature branch to main, create retro, update wiki, calibrate sizing |
-| `limbic:issue` | Ad-hoc issue creation, investigation, triage, and fix execution |
+| `limbic:issue` | Ad-hoc issue creation, investigation, triage, fix execution, and backlog capture |

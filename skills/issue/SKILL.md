@@ -1,6 +1,6 @@
 ---
 name: issue
-description: Use when reporting a bug, filing an issue, investigating a problem, or fixing an already-investigated issue — supports ad-hoc issue creation, duplicate detection, root-cause investigation, severity/priority recommendation, and stabilization tracking
+description: Use when reporting a bug, filing an issue, investigating a problem, fixing an already-investigated issue, or quickly capturing a backlog idea — supports ad-hoc issue creation, duplicate detection, root-cause investigation, severity/priority recommendation, stabilization tracking, and lightweight backlog capture
 ---
 
 # issue — Ad-hoc Issue Creation, Investigation, and Triage
@@ -9,13 +9,16 @@ description: Use when reporting a bug, filing an issue, investigating a problem,
 
 ## Invocation Modes
 
-This skill has two modes:
+This skill has three modes:
 
 1. **Investigate** (default) — `/issue {description}`
    Human describes a bug, enhancement, or problem. The skill spawns an investigator agent.
 
 2. **Fix** — `/issue fix #{issue_number}`
    For an already-investigated issue. The skill spawns a fix agent.
+
+3. **Backlog** — `/issue backlog "idea title"` or `/issue backlog {tier} "idea title"`
+   Quick capture of a backlog idea. No investigation, no milestone. Tier is `now`, `next`, `later` (default), or `icebox`.
 
 ## Mode 1: Investigate
 
@@ -177,3 +180,68 @@ Tell the human which mode was detected and what will happen.
    - [ ] Full test suite passes with no regressions"
    ```
 9. Tell the human the PR is ready for review. Do NOT close the issue — the PR merge will close it via the `Fixes #N` reference.
+
+## Mode 3: Backlog
+
+### Inputs
+
+- A title string (`/issue backlog "idea title"`)
+- Optional tier keyword: `now`, `next`, `later` (default), `icebox`
+
+### Invocation Examples
+
+```
+/issue backlog "add rate limiting to public API"
+/issue backlog now "fix onboarding flow before launch"
+/issue backlog icebox "explore GraphQL migration"
+```
+
+### Checklist
+
+1. **Parse arguments and create issue** — extract tier and title, create the GitHub issue (Step 1)
+2. **Offer description** — ask if the user wants to add detail (Step 2)
+
+### Process
+
+#### Step 1: Parse Arguments and Create Issue
+
+Parse the arguments after `backlog`:
+- If the first word is `now`, `next`, `later`, or `icebox`, use it as the tier. The rest is the title.
+- Otherwise, default tier is `later`. Everything after `backlog` is the title.
+- Strip surrounding quotes from the title if present.
+
+Read `owner`/`repo` from git remote:
+```bash
+gh repo view --json owner,name --jq '.owner.login + "/" + .name'
+```
+
+Create the issue:
+```bash
+gh issue create --repo {owner}/{repo} \
+  --title "{title}" \
+  --label "backlog:{tier}" --label "type:task" \
+  --body ""
+```
+
+Capture the issue number from the output.
+
+Report: `Backlog item #{number} created with backlog:{tier}`
+
+#### Step 2: Offer Description
+
+Ask the user: "Want to add any detail to the description for later?"
+
+- If yes: take the user's input and update the issue:
+  ```bash
+  gh issue edit {number} --repo {owner}/{repo} --body "{user_input}"
+  ```
+- If no: done.
+
+### What This Mode Does NOT Do
+
+- No investigation or systematic debugging
+- No duplicate check
+- No severity/priority recommendation
+- No stabilization ticket association
+- No milestone assignment
+- No agent spawning
